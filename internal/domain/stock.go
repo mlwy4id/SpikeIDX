@@ -4,7 +4,7 @@ import "time"
 
 type Stock struct {
 	Code        string
-	YahooSymbol string 
+	YahooSymbol string
 	Name        string
 	Sector      string
 }
