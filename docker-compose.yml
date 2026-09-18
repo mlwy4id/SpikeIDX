@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: spikeidx
+      POSTGRES_USER: spikeidx
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-spikeidx}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  api:
+    build: .
+    command: ["./api"]
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgres://spikeidx:${DB_PASSWORD:-spikeidx}@db:5432/spikeidx?sslmode=disable
+    depends_on: [db]
+    ports: ["8080:8080"]
+
+  worker:
+    build: .
+    command: ["./worker"]
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgres://spikeidx:${DB_PASSWORD:-spikeidx}@db:5432/spikeidx?sslmode=disable
+    depends_on: [db]
+
+volumes:
+  pgdata:

@@ -1,0 +1,8 @@
+.env
+api
+worker
+/out/
+bin/
+*.test
+.idea/
+.vscode/
