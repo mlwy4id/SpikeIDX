@@ -6,21 +6,7 @@ import (
 	"spikeidx/internal/domain"
 )
 
-// SpikeRule holds the v1 detection thresholds.
-type SpikeRule struct {
-	MultipleMin  float64 // e.g. 2.0
-	ZScoreMin    float64 // e.g. 2.0
-	PctChangeMin float64 // e.g. 2.0 (absolute)
-}
-
-// DefaultSpikeRule matches architecture.md.
-func DefaultSpikeRule() SpikeRule {
-	return SpikeRule{MultipleMin: 2.0, ZScoreMin: 2.0, PctChangeMin: 2.0}
-}
-
-// Stats computes avg20, multiple, z-score and pct-change for the last bar.
-// hist must be oldest-first and contain >= 20 rows; the signal is for hist[len-1].
-func Stats(hist []domain.OHLCV, rule SpikeRule) (avg, multiple, z, pct float64, ok bool) {
+func Stats(hist []domain.OHLCV, rule domain.SpikeRule) (avg, multiple, z, pct float64, ok bool) {
 	if len(hist) < 20 {
 		return 0, 0, 0, 0, false
 	}
@@ -52,11 +38,10 @@ func Stats(hist []domain.OHLCV, rule SpikeRule) (avg, multiple, z, pct float64, 
 	return avg, multiple, z, pct, true
 }
 
-// IsSpike applies the rule. Returns (spike, filteredByPrice).
-func IsSpike(multiple, z, pct float64, rule SpikeRule) (spike, filtered bool) {
+func IsSpike(multiple, z, pct float64, rule domain.SpikeRule) (spike, filtered bool) {
 	if multiple > rule.MultipleMin && z > rule.ZScoreMin {
-		if math.Abs(pct) < rule.PctChangeMin {
-			return true, true // spike but noise-filtered
+		if rule.PriceFilterEnabled && math.Abs(pct) < rule.PctChangeMin {
+			return true, true
 		}
 		return true, false
 	}

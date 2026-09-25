@@ -16,15 +16,14 @@ func mkHist(volumes []int64, close float64) []domain.OHLCV {
 }
 
 func TestStatsNeeds20Rows(t *testing.T) {
-	_, _, _, _, ok := Stats(mkHist(make([]int64, 19), 100), DefaultSpikeRule())
+	_, _, _, _, ok := Stats(mkHist(make([]int64, 19), 100), domain.DefaultSpikeRule())
 	if ok {
 		t.Fatal("expected not ok with <20 rows")
 	}
 }
 
 func TestIsSpike(t *testing.T) {
-	rule := DefaultSpikeRule()
-	// flat 10jt x19, then 35jt spike with +3% move
+	rule := domain.DefaultSpikeRule()
 	vols := make([]int64, 20)
 	for i := range vols {
 		vols[i] = 10_000_000
@@ -46,7 +45,6 @@ func TestIsSpike(t *testing.T) {
 		t.Fatalf("expected unfiltered spike, got spike=%v filtered=%v (z=%f pct=%f)", spike, filtered, z, pct)
 	}
 
-	// same spike but flat price -> filtered
 	hist[19].Close = 100.5
 	_, mult, z, pct, _ = Stats(hist, rule)
 	spike, filtered = IsSpike(mult, z, pct, rule)
@@ -56,9 +54,18 @@ func TestIsSpike(t *testing.T) {
 	_ = avg
 }
 
+func TestIsSpikeFilterDisabled(t *testing.T) {
+	rule := domain.DefaultSpikeRule()
+	rule.PriceFilterEnabled = false
+	spike, filtered := IsSpike(3.0, 2.5, 0.1, rule)
+	if !spike || filtered {
+		t.Fatalf("expected actionable spike, got spike=%v filtered=%v", spike, filtered)
+	}
+}
+
 func TestADLAccumulation(t *testing.T) {
 	hist := []domain.OHLCV{
-		{High: 110, Low: 90, Close: 108, Volume: 1000}, // near high -> positive MFV
+		{High: 110, Low: 90, Close: 108, Volume: 1000},
 		{High: 110, Low: 90, Close: 108, Volume: 1000},
 	}
 	adl := AccumulationDistributionLine(hist)
