@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"math"
+	"sort"
 
 	"spikeidx/internal/domain"
 )
@@ -10,7 +11,9 @@ func Stats(hist []domain.OHLCV, rule domain.SpikeRule) (avg, multiple, z, pct fl
 	if len(hist) < 20 {
 		return 0, 0, 0, 0, false
 	}
-	window := hist[len(hist)-20:]
+	sorted := append([]domain.OHLCV(nil), hist...)
+	sort.SliceStable(sorted, func(i, j int) bool { return sorted[i].Date.Before(sorted[j].Date) })
+	window := sorted[len(sorted)-20:]
 	var sum float64
 	for _, h := range window {
 		sum += float64(h.Volume)
@@ -24,8 +27,8 @@ func Stats(hist []domain.OHLCV, rule domain.SpikeRule) (avg, multiple, z, pct fl
 	}
 	std := math.Sqrt(variance / 20)
 
-	last := hist[len(hist)-1]
-	prev := hist[len(hist)-2]
+	last := sorted[len(sorted)-1]
+	prev := sorted[len(sorted)-2]
 	if avg > 0 {
 		multiple = float64(last.Volume) / avg
 	}
