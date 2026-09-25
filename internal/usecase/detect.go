@@ -2,12 +2,15 @@ package usecase
 
 import (
 	"context"
+	"sort"
 
 	"spikeidx/internal/domain"
 )
 
 func DetectOne(code domain.Code, hist []domain.OHLCV, rule domain.SpikeRule) (domain.Signal, bool, bool, error) {
-	avg, mult, z, pct, ok := Stats(hist, rule)
+	sorted := append([]domain.OHLCV(nil), hist...)
+	sort.SliceStable(sorted, func(i, j int) bool { return sorted[i].Date.Before(sorted[j].Date) })
+	avg, mult, z, pct, ok := Stats(sorted, rule)
 	if !ok {
 		return domain.Signal{}, false, false, domain.ErrInsufficientData
 	}
@@ -15,8 +18,8 @@ func DetectOne(code domain.Code, hist []domain.OHLCV, rule domain.SpikeRule) (do
 	if !spike {
 		return domain.Signal{}, false, false, nil
 	}
-	adl := AccumulationDistributionLine(hist)
-	last := hist[len(hist)-1]
+	adl := AccumulationDistributionLine(sorted)
+	last := sorted[len(sorted)-1]
 	return domain.Signal{
 		Code: code, Date: last.Date, Volume: last.Volume,
 		Avg20: avg, Multiple: mult, ZScore: z, Close: last.Close,
