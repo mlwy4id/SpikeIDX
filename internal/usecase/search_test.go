@@ -89,3 +89,25 @@ func TestBackfillProviderError(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestBackfillNormalizesWIB(t *testing.T) {
+	ctx := context.Background()
+	store := &fakeOHLCV{}
+	provider := &fakeProvider{candles: map[domain.Code][]domain.Candle{
+		"BBCA": {
+			{Date: time.Date(2026, 9, 18, 18, 0, 0, 0, time.UTC), Close: 100},
+		},
+	}}
+
+	if _, err := Backfill(ctx, provider, store, "BBCA"); err != nil {
+		t.Fatal(err)
+	}
+	hist, _ := store.History(ctx, "BBCA", 0)
+	if len(hist) != 1 {
+		t.Fatalf("got %+v", hist)
+	}
+	want, _ := domain.ParseTradingDate("2026-09-19")
+	if got := domain.NewTradingDate(hist[0].Date); !got.Equal(want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+}
