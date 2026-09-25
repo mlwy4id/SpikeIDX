@@ -2,8 +2,6 @@ package usecase
 
 import "spikeidx/internal/domain"
 
-// ADL computes the Chaikin Accumulation/Distribution Line over hist (oldest-first).
-// Returns the full ADL series aligned with hist.
 func AccumulationDistributionLine(hist []domain.OHLCV) []float64 {
 	out := make([]float64, len(hist))
 	var cur float64
@@ -18,7 +16,6 @@ func AccumulationDistributionLine(hist []domain.OHLCV) []float64 {
 	return out
 }
 
-// ADLSlope5 returns ADL[last] - ADL[last-5]. Positive means accumulation.
 func AccumulationDistributionLineSlope5(adl []float64) float64 {
 	if len(adl) < 6 {
 		return 0
