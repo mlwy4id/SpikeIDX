@@ -3,7 +3,7 @@ package domain
 import "time"
 
 type Stock struct {
-	Code        string
+	Code        Code
 	YahooSymbol string
 	Name        string
 	Sector      string
@@ -19,7 +19,7 @@ type Candle struct {
 }
 
 type OHLCV struct {
-	Code   string
+	Code   Code
 	Date   time.Time
 	Open   float64
 	High   float64
