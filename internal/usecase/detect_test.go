@@ -33,7 +33,7 @@ func TestDetectOneSpike(t *testing.T) {
 	hist[19].Close = 103
 	hist[18].Close = 100
 
-	sig, spike, filtered, err := DetectOne("BBCA", hist)
+	sig, spike, filtered, err := DetectOne("BBCA", hist, domain.DefaultSpikeRule())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,14 +53,14 @@ func TestDetectOneNoSpike(t *testing.T) {
 	for i := range vols {
 		vols[i] = 10_000_000
 	}
-	_, spike, _, err := DetectOne("BBCA", mkHist(vols, 100))
+	_, spike, _, err := DetectOne("BBCA", mkHist(vols, 100), domain.DefaultSpikeRule())
 	if err != nil || spike {
 		t.Fatalf("got spike=%v err=%v", spike, err)
 	}
 }
 
 func TestDetectOneShortHistory(t *testing.T) {
-	_, _, _, err := DetectOne("BBCA", mkHist(make([]int64, 19), 100))
+	_, _, _, err := DetectOne("BBCA", mkHist(make([]int64, 19), 100), domain.DefaultSpikeRule())
 	if !errors.Is(err, domain.ErrInsufficientData) {
 		t.Fatalf("expected ErrInsufficientData, got %v", err)
 	}
@@ -80,7 +80,7 @@ func TestDailyIngest(t *testing.T) {
 	}
 
 	res := DailyIngest(ctx, provider, IngestRepos{Stocks: stocks, OHLCV: ohlcv, Signals: signals},
-		[]domain.Code{"BBCA", "TLKM", "GOTO"})
+		[]domain.Code{"BBCA", "TLKM", "GOTO"}, domain.DefaultSpikeRule())
 	if len(res) != 3 {
 		t.Fatalf("got %+v", res)
 	}

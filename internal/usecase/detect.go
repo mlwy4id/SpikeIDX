@@ -6,12 +6,12 @@ import (
 	"spikeidx/internal/domain"
 )
 
-func DetectOne(code domain.Code, hist []domain.OHLCV) (domain.Signal, bool, bool, error) {
-	avg, mult, z, pct, ok := Stats(hist)
+func DetectOne(code domain.Code, hist []domain.OHLCV, rule domain.SpikeRule) (domain.Signal, bool, bool, error) {
+	avg, mult, z, pct, ok := Stats(hist, rule)
 	if !ok {
 		return domain.Signal{}, false, false, domain.ErrInsufficientData
 	}
-	spike, filtered := IsSpike(mult, z, pct)
+	spike, filtered := IsSpike(mult, z, pct, rule)
 	if !spike {
 		return domain.Signal{}, false, false, nil
 	}
@@ -38,7 +38,7 @@ type IngestRepos struct {
 	Signals domain.SignalRepository
 }
 
-func DailyIngest(ctx context.Context, provider domain.MarketDataProvider, r IngestRepos, codes []domain.Code) []SymbolResult {
+func DailyIngest(ctx context.Context, provider domain.MarketDataProvider, r IngestRepos, codes []domain.Code, rule domain.SpikeRule) []SymbolResult {
 	out := make([]SymbolResult, 0, len(codes))
 	for _, code := range codes {
 		res := SymbolResult{Code: code}
@@ -56,7 +56,7 @@ func DailyIngest(ctx context.Context, provider domain.MarketDataProvider, r Inge
 			out = append(out, res)
 			continue
 		}
-		sig, spike, _, err := DetectOne(code, hist)
+		sig, spike, _, err := DetectOne(code, hist, rule)
 		if err != nil {
 			res.Reason = err.Error()
 			out = append(out, res)
