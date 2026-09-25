@@ -14,7 +14,7 @@ func Backfill(ctx context.Context, provider domain.MarketDataProvider, store dom
 	rows := make([]domain.OHLCV, 0, len(candles))
 	for _, c := range candles {
 		rows = append(rows, domain.OHLCV{
-			Code: code, Date: c.Date,
+			Code: code, Date: domain.NewTradingDate(c.Date).Time(),
 			Open: c.Open, High: c.High, Low: c.Low, Close: c.Close, Volume: c.Volume,
 		})
 	}
