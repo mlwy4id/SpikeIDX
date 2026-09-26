@@ -7,9 +7,9 @@ import (
 
 func TestParseCode(t *testing.T) {
 	cases := []struct {
-		in      string
-		want    Code
-		wantErr error
+		input       string
+		expected    Code
+		expectedErr error
 	}{
 		{"BBCA", "BBCA", nil},
 		{"bbca", "BBCA", nil},
@@ -26,19 +26,19 @@ func TestParseCode(t *testing.T) {
 		{"BBCA.JK.JK", "", ErrInvalidCode},
 	}
 	for _, tc := range cases {
-		got, err := ParseCode(tc.in)
-		if tc.wantErr != nil {
-			if !errors.Is(err, tc.wantErr) {
-				t.Errorf("ParseCode(%q): expected %v, got %v", tc.in, tc.wantErr, err)
+		got, err := ParseCode(tc.input)
+		if tc.expectedErr != nil {
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("ParseCode(%q): expected %v, got %v", tc.input, tc.expectedErr, err)
 			}
 			continue
 		}
 		if err != nil {
-			t.Errorf("ParseCode(%q): unexpected error %v", tc.in, err)
+			t.Errorf("ParseCode(%q): unexpected error %v", tc.input, err)
 			continue
 		}
-		if got != tc.want {
-			t.Errorf("ParseCode(%q) = %q, want %q", tc.in, got, tc.want)
+		if got != tc.expected {
+			t.Errorf("ParseCode(%q) = %q, want %q", tc.input, got, tc.expected)
 		}
 	}
 }

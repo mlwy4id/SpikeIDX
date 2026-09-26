@@ -13,8 +13,8 @@ func TestSignalIsActionable(t *testing.T) {
 
 func TestSignalInterpretation(t *testing.T) {
 	cases := []struct {
-		sig  Signal
-		want string
+		input    Signal
+		expected string
 	}{
 		{Signal{ADLSlope5: 1.5}, "akumulasi"},
 		{Signal{ADLSlope5: -0.1}, "distribusi"},
@@ -22,8 +22,8 @@ func TestSignalInterpretation(t *testing.T) {
 		{Signal{ADLSlope5: 99, IsFiltered: true}, "terfilter (noise harga)"},
 	}
 	for _, tc := range cases {
-		if got := tc.sig.Interpretation(); got != tc.want {
-			t.Errorf("Interpretation(%+v) = %q, want %q", tc.sig, got, tc.want)
+		if got := tc.input.Interpretation(); got != tc.expected {
+			t.Errorf("Interpretation(%+v) = %q, want %q", tc.input, got, tc.expected)
 		}
 	}
 }
@@ -33,7 +33,7 @@ func TestDefaultSpikeRule(t *testing.T) {
 	if r.MultipleMin != 2.0 || r.ZScoreMin != 2.0 || r.PctChangeMin != 2.0 {
 		t.Fatalf("thresholds changed: %+v", r)
 	}
-	if !r.PriceFilterEnabled {
+	if !r.IsPriceFilterEnabled {
 		t.Fatal("price filter must be enabled by default (US-06)")
 	}
 }
