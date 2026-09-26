@@ -1,5 +1,4 @@
 .env
-api
 worker
 /out/
 bin/

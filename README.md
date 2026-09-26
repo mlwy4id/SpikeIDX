@@ -5,22 +5,25 @@ Go clean-lite + Postgres (cloud) + Yahoo `.JK` primary.
 ## Layout
 
 - `cmd/api` — REST via Gin: search, watchlist, signals
-- `cmd/worker` — cron EOD: fetch → upsert → detect spike + ADL → Telegram
+- `internal/http` — Gin handlers tipis di atas usecase (validasi + map error: 400/404/409/502)
+- `cmd/worker` — v2 (ditunda): cron EOD fetch → upsert → detect spike + ADL → Telegram
 - `internal/domain` — entities + interfaces (`StockRepository` wajib sebelum tulis watchlist/ohlcv)
 - `internal/usecase` — spike rule (2x SMA20 + z>2 + filter |change|>2%), Chaikin A/D Line
 - `internal/infra/yahoo` — Yahoo chart + search (browser UA, 1 req/s)
 - `internal/infra/idx` — stub fallback IDX (v2: broker summary)
-- `internal/infra/memory` — in-memory repos (dev tanpa DB)
-- `internal/infra/postgres` — repo pgx + auto-migrate saat startup
-- `internal/infra/postgres/migrations` — DDL kanonis (`db/migrations` berisi symlink untuk `psql -f` manual)
+- `internal/infra/postgres` — repo pgx + auto-migrate saat startup (strict, tanpa fallback)
+- `internal/infra/postgres/migrations` — DDL kanonis (manual: `psql -f internal/infra/postgres/migrations/001_master.sql`)
 
-## Run lokal (tanpa DB)
+## Run lokal
 
 ```bash
 go test ./...
-go run ./cmd/api            # :8080, backend=memory, GET /health
-go run ./cmd/worker         # jalan sekali (dev default BBCA/TLKM/BBRI bila watchlist kosong)
+golangci-lint run ./...   # lint bersih (config: .golangci.yml)
+cp .env.example .env   # isi DATABASE_URL cloud
+go run ./cmd/api       # :8080, gagal keras tanpa DB (WireStrict)
 ```
+
+Smoke: `GET /health` → `{"status":"ok"}`; `POST /api/v1/watchlist {"code":"X"}` tanpa search → 404.
 
 Alur wajib search dulu: `GET /search?q=BBCA` (auto-cache master) → `POST /watchlist {"code":"BBCA"}` → backfill jalan di background.
 
@@ -34,7 +37,8 @@ Alur wajib search dulu: `GET /search?q=BBCA` (auto-cache master) → `POST /watc
 cp .env.example .env   # isi DATABASE_URL
 go run ./cmd/api       # log: backend=postgres
 ```
-Produksi/docker: set `STRICT_DB=1` agar app gagal keras (bukan fallback memory) bila DB tidak reachable. Cron worker: `30 16 * * 1-5 TZ=Asia/Jakarta ./worker`.
+Backend strict-Postgres via `infra.WireStrict`: gagal keras tanpa `DATABASE_URL` yang reachable.
+Worker v2 cron: `30 16 * * 1-5 TZ=Asia/Jakarta ./worker`.
 
 ## API
 
@@ -44,7 +48,7 @@ Produksi/docker: set `STRICT_DB=1` agar app gagal keras (bukan fallback memory) 
 
 ## Next
 
-1. Seed `stocks_master` IDX + uji fetch Yahoo 20–100 simbol.
-2. Tambah IDX `GetStockSummary` fallback + `GetBrokerSummary` v2.
-3. Kalender libur BEI + `ByDate(time.Time)` + validasi kode (temuan review domain #2–4).
-4. Tambah `robfig/cron` in-process bila worker jadi long-running.
+1. E2E cloud via contract test (`DATABASE_URL` user) + smoke Yahoo nyata (search → watchlist → backfill).
+2. Seed `stocks_master` IDX + uji fetch Yahoo 20–100 simbol + retry/backoff.
+3. `cmd/worker` v2 + IDX `GetStockSummary` fallback + `GetBrokerSummary` v2.
+4. Kalender libur BEI penuh + `robfig/cron` bila worker jadi long-running.
