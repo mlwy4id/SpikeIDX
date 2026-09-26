@@ -6,6 +6,7 @@ func wib() *time.Location {
 	if loc, err := time.LoadLocation("Asia/Jakarta"); err == nil {
 		return loc
 	}
+
 	return time.FixedZone("WIB", 7*3600)
 }
 
@@ -20,9 +21,11 @@ func NewTradingDate(t time.Time) TradingDate {
 
 func ParseTradingDate(s string) (TradingDate, error) {
 	t, err := time.ParseInLocation("2006-01-02", s, wib())
+
 	if err != nil {
 		return TradingDate{}, err
 	}
+
 	return TradingDate{t: t}, nil
 }
 

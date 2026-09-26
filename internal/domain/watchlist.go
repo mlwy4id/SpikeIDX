@@ -9,6 +9,7 @@ const MaxWatchlist = 100
 func NormalizeCode(input string) string {
 	s := strings.ToUpper(strings.TrimSpace(input))
 	s = strings.TrimSuffix(s, ".JK")
+	
 	return s
 }
 

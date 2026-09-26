@@ -22,6 +22,7 @@ func (s Signal) Interpretation() string {
 	if s.IsFiltered {
 		return "terfilter (noise harga)"
 	}
+
 	switch {
 	case s.ADLSlope5 > 0:
 		return "akumulasi"

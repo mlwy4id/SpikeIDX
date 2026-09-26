@@ -11,17 +11,21 @@ type Code string
 
 func ParseCode(input string) (Code, error) {
 	s := NormalizeCode(input)
+
 	if !codePattern.MatchString(s) {
 		return "", fmt.Errorf("%w: %q", ErrInvalidCode, input)
 	}
+
 	return Code(s), nil
 }
 
 func MustParseCode(input string) Code {
 	c, err := ParseCode(input)
+
 	if err != nil {
 		panic(err)
 	}
+
 	return c
 }
 
