@@ -11,19 +11,19 @@ func DetectOne(code domain.Code, hist []domain.OHLCV, rule domain.SpikeRule) (si
 	sorted := append([]domain.OHLCV(nil), hist...)
 	sort.SliceStable(sorted, func(i, j int) bool { return sorted[i].Date.Before(sorted[j].Date) })
 	avg, multiple, zScore, pctChange, ok := Stats(sorted, rule)
-	
+
 	if !ok {
 		return domain.Signal{}, false, false, domain.ErrInsufficientData
 	}
-	
+
 	spike, isFiltered = IsSpike(multiple, zScore, pctChange, rule)
 	if !spike {
 		return domain.Signal{}, false, false, nil
 	}
-	
+
 	adl := ADL(sorted)
 	last := sorted[len(sorted)-1]
-	
+
 	return domain.Signal{
 		Code: code, Date: last.Date, Volume: last.Volume,
 		Avg20: avg, Multiple: multiple, ZScore: zScore, Close: last.Close,
@@ -58,13 +58,13 @@ func DailyIngest(ctx context.Context, provider domain.MarketDataProvider, repos 
 				continue
 			}
 		}
-		
+
 		if _, err := Backfill(ctx, provider, repos.OHLCV, code); err != nil {
 			res.Reason = err.Error()
 			out = append(out, res)
 			continue
 		}
-		
+
 		hist, err := repos.OHLCV.History(ctx, code, 60)
 
 		if err != nil {
@@ -72,7 +72,7 @@ func DailyIngest(ctx context.Context, provider domain.MarketDataProvider, repos 
 			out = append(out, res)
 			continue
 		}
-		
+
 		sig, spike, _, err := DetectOne(code, hist, rule)
 
 		if err != nil {
@@ -80,23 +80,23 @@ func DailyIngest(ctx context.Context, provider domain.MarketDataProvider, repos 
 			out = append(out, res)
 			continue
 		}
-		
+
 		if !spike {
 			res.Reason = "no spike"
 			out = append(out, res)
 			continue
 		}
-		
+
 		if err := repos.Signals.Upsert(ctx, sig); err != nil {
 			res.Reason = err.Error()
 			out = append(out, res)
 			continue
 		}
-		
+
 		res.HasSpike = true
 		res.Signal = sig
 		out = append(out, res)
 	}
-	
+
 	return out
 }

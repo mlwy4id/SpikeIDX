@@ -13,7 +13,7 @@ func mkHist(volumes []int64, close float64) []domain.OHLCV {
 	for i, v := range volumes {
 		out[i] = domain.OHLCV{Code: "BBCA", Volume: v, Close: close, High: close, Low: close}
 	}
-	
+
 	return out
 }
 

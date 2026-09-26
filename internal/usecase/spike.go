@@ -45,7 +45,7 @@ func Stats(hist []domain.OHLCV, rule domain.SpikeRule) (avg, multiple, zScore, p
 	if prev.Close > 0 {
 		pctChange = (last.Close - prev.Close) / prev.Close * 100
 	}
-	
+
 	return avg, multiple, zScore, pctChange, true
 }
 
@@ -54,9 +54,9 @@ func IsSpike(multiple, zScore, pctChange float64, rule domain.SpikeRule) (spike,
 		if rule.IsPriceFilterEnabled && math.Abs(pctChange) < rule.PctChangeMin {
 			return true, true
 		}
-		
+
 		return true, false
 	}
-	
+
 	return false, false
 }

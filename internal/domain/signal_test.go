@@ -6,7 +6,7 @@ func TestSignalIsActionable(t *testing.T) {
 	if !(Signal{}.IsActionable()) {
 		t.Fatal("zero signal should be actionable")
 	}
-	
+
 	if (Signal{IsFiltered: true}).IsActionable() {
 		t.Fatal("filtered signal should not be actionable")
 	}

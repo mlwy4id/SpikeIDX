@@ -23,7 +23,7 @@ type OHLCVRepository interface {
 
 type SignalRepository interface {
 	Upsert(ctx context.Context, s Signal) error
-	ByDate(ctx context.Context, date TradingDate, includeFiltered bool) ([]Signal, error)
+	ByDate(ctx context.Context, date TradingDate, shouldIncludeFiltered bool) ([]Signal, error)
 }
 
 type WatchlistRepository interface {

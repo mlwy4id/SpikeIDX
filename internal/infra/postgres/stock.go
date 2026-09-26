@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/jackc/pgx/v5"
 	"spikeidx/internal/domain"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type StockRepo struct{ db *DB }

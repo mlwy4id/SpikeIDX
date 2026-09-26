@@ -26,34 +26,44 @@ type stockResponse struct {
 
 func (d *Dependencies) search(c *gin.Context) {
 	q := c.Query("q")
+
 	if q == "" {
 		c.JSON(stdhttp.StatusBadRequest, gin.H{"error": "missing query param q"})
 		return
 	}
+
 	res, err := usecase.SearchAndCache(c.Request.Context(), d.Primary, d.Fallback, d.Stocks, q)
+
 	if err != nil {
 		c.JSON(stdhttp.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
+
 	out := make([]stockResponse, 0, len(res))
+
 	for _, s := range res {
 		out = append(out, stockResponse{
 			Code: string(s.Code), YahooSymbol: s.YahooSymbol, Name: s.Name, Sector: s.Sector,
 		})
 	}
+
 	c.JSON(stdhttp.StatusOK, out)
 }
 
 func (d *Dependencies) watchlistList(c *gin.Context) {
 	list, err := d.Watchlist.List(c.Request.Context(), domain.DefaultUser)
+
 	if err != nil {
 		c.JSON(stdhttp.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	out := make([]string, 0, len(list))
+
 	for _, code := range list {
 		out = append(out, string(code))
 	}
+
 	c.JSON(stdhttp.StatusOK, out)
 }
 
@@ -63,11 +73,14 @@ type watchlistAddRequest struct {
 
 func (d *Dependencies) watchlistAdd(c *gin.Context) {
 	var req watchlistAddRequest
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(stdhttp.StatusBadRequest, gin.H{"error": "invalid JSON body"})
 		return
 	}
+
 	code, err := usecase.AddToWatchlist(c.Request.Context(), d.Stocks, d.Watchlist, req.Code)
+
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrInvalidCode):
@@ -81,12 +94,14 @@ func (d *Dependencies) watchlistAdd(c *gin.Context) {
 		}
 		return
 	}
+
 	// Backfill must survive request completion: detach from request context.
 	// Failure is safe to ignore: backfill is idempotent, next ingest retries.
 	go func() {
 		ctx := context.WithoutCancel(context.Background())
 		_, _ = usecase.Backfill(ctx, d.Primary, d.OHLCV, code) //nolint:errcheck // fire-and-forget, nowhere to report
 	}()
+
 	c.JSON(stdhttp.StatusCreated, gin.H{"code": string(code), "status": "backfilling"})
 }
 
@@ -96,9 +111,11 @@ func (d *Dependencies) watchlistDelete(c *gin.Context) {
 			c.JSON(stdhttp.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+
 		c.JSON(stdhttp.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.Status(stdhttp.StatusNoContent)
 }
 
@@ -119,17 +136,21 @@ type signalResponse struct {
 
 func (d *Dependencies) signals(c *gin.Context) {
 	var date domain.TradingDate
+
 	if s := c.Query("date"); s == "" {
 		date = domain.NewTradingDate(time.Now())
 	} else {
 		var err error
 		date, err = domain.ParseTradingDate(s)
+
 		if err != nil {
 			c.JSON(stdhttp.StatusBadRequest, gin.H{"error": "invalid date, want YYYY-MM-DD"})
 			return
 		}
 	}
+
 	shouldIncludeFiltered := false
+
 	if s := c.Query("include_filtered"); s != "" {
 		var err error
 		shouldIncludeFiltered, err = strconv.ParseBool(s)
@@ -138,11 +159,14 @@ func (d *Dependencies) signals(c *gin.Context) {
 			return
 		}
 	}
+
 	res, err := d.Signals.ByDate(c.Request.Context(), date, shouldIncludeFiltered)
+
 	if err != nil {
 		c.JSON(stdhttp.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	out := make([]signalResponse, 0, len(res))
 	for _, s := range res {
 		out = append(out, signalResponse{
@@ -152,5 +176,6 @@ func (d *Dependencies) signals(c *gin.Context) {
 			IsFiltered: s.IsFiltered, Interpretation: s.Interpretation(),
 		})
 	}
+
 	c.JSON(stdhttp.StatusOK, out)
 }

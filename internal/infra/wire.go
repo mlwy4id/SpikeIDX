@@ -7,7 +7,7 @@ import (
 	"spikeidx/internal/infra/postgres"
 )
 
-type Repos struct {
+type Repositories struct {
 	Stocks    domain.StockRepository
 	Watchlist domain.WatchlistRepository
 	OHLCV     domain.OHLCVRepository
@@ -15,7 +15,7 @@ type Repos struct {
 	Close     func()
 }
 
-func WireStrict(ctx context.Context, dsn string) (*Repos, error) {
+func WireStrict(ctx context.Context, dsn string) (*Repositories, error) {
 	db, err := postgres.Connect(ctx, dsn)
 	if err != nil {
 		return nil, err
@@ -24,7 +24,7 @@ func WireStrict(ctx context.Context, dsn string) (*Repos, error) {
 		db.Close()
 		return nil, err
 	}
-	return &Repos{
+	return &Repositories{
 		Stocks:    postgres.NewStockRepo(db),
 		Watchlist: postgres.NewWatchlistRepo(db),
 		OHLCV:     postgres.NewOHLCVRepo(db),

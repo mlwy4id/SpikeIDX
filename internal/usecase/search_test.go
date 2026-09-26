@@ -23,11 +23,11 @@ func TestSearchAndCache(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	if len(res) != 1 || res[0].Code != "BBCA" {
 		t.Fatalf("got %+v", res)
 	}
-	
+
 	if _, err := stocks.Get(ctx, "BBCA"); err != nil {
 		t.Fatalf("expected cached stock, got %v", err)
 	}

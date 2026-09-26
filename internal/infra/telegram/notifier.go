@@ -21,7 +21,7 @@ func New(botToken, chatID string) *Notifier {
 	return &Notifier{BotToken: botToken, ChatID: chatID, client: &http.Client{Timeout: 15 * time.Second}}
 }
 
-func (n *Notifier) Enabled() bool { return n.BotToken != "" && n.ChatID != "" }
+func (n *Notifier) IsEnabled() bool { return n.BotToken != "" && n.ChatID != "" }
 
 func compact(v int64) string {
 	switch {
@@ -54,8 +54,8 @@ func Digest(date string, signals []domain.Signal) string {
 }
 
 func (n *Notifier) Send(ctx context.Context, text string) error {
-	if !n.Enabled() {
-		return fmt.Errorf("telegram: BOT_TOKEN/CHAT_ID not configured")
+	if !n.IsEnabled() {
+		return fmt.Errorf("telegram: bot_token/chat_id not configured")
 	}
 	u := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", n.BotToken)
 	form := url.Values{"chat_id": {n.ChatID}, "text": {text}}
@@ -68,9 +68,9 @@ func (n *Notifier) Send(ctx context.Context, text string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("telegram: HTTP %d", resp.StatusCode)
+		return fmt.Errorf("telegram: http %d", resp.StatusCode)
 	}
 	return nil
 }

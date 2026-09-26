@@ -3,8 +3,9 @@ package postgres
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5"
 	"spikeidx/internal/domain"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type OHLCVRepo struct{ db *DB }
@@ -20,7 +21,7 @@ func (r *OHLCVRepo) UpsertBatch(ctx context.Context, rows []domain.OHLCV) error 
 		batch.Queue(UpsertOHLCV, string(o.Code), o.Date, o.Open, o.High, o.Low, o.Close, o.Volume)
 	}
 	br := r.db.Pool.SendBatch(ctx, batch)
-	defer br.Close()
+	defer func() { _ = br.Close() }()
 	for range rows {
 		if _, err := br.Exec(); err != nil {
 			return err

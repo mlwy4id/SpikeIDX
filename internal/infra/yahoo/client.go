@@ -20,7 +20,7 @@ type Client struct{}
 
 func New() *Client { return &Client{} }
 
-type chartResp struct {
+type chartResponse struct {
 	Chart struct {
 		Result []struct {
 			Timestamp  []int64 `json:"timestamp"`
@@ -41,14 +41,14 @@ type chartResp struct {
 	} `json:"chart"`
 }
 
-func f64(p *float64) float64 {
+func floatValue(p *float64) float64 {
 	if p == nil {
 		return 0
 	}
 	return *p
 }
 
-func i64(p *int64) int64 {
+func intValue(p *int64) int64 {
 	if p == nil {
 		return 0
 	}
@@ -72,15 +72,15 @@ func (c *Client) DailyOHLCV(ctx context.Context, code domain.Code) ([]domain.Can
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("yahoo: HTTP %d for %s", resp.StatusCode, symbol)
+		return nil, fmt.Errorf("yahoo: http %d for %s", resp.StatusCode, symbol)
 	}
 	return decodeChart(symbol, resp.Body)
 }
 
 func decodeChart(symbol string, r io.Reader) ([]domain.Candle, error) {
-	var cr chartResp
+	var cr chartResponse
 	if err := json.NewDecoder(r).Decode(&cr); err != nil {
 		return nil, err
 	}
@@ -103,17 +103,17 @@ func decodeChart(symbol string, r io.Reader) ([]domain.Candle, error) {
 		}
 		out = append(out, domain.Candle{
 			Date:   time.Unix(ts, 0).UTC(),
-			Open:   f64(q.Open[i]),
-			High:   f64(q.High[i]),
-			Low:    f64(q.Low[i]),
-			Close:  f64(q.Close[i]),
-			Volume: i64(q.Volume[i]),
+			Open:   floatValue(q.Open[i]),
+			High:   floatValue(q.High[i]),
+			Low:    floatValue(q.Low[i]),
+			Close:  floatValue(q.Close[i]),
+			Volume: intValue(q.Volume[i]),
 		})
 	}
 	return out, nil
 }
 
-type searchResp struct {
+type searchResponse struct {
 	Quotes []struct {
 		Symbol    string `json:"symbol"`
 		Shortname string `json:"shortname"`
@@ -134,15 +134,15 @@ func (c *Client) Search(ctx context.Context, query string) ([]domain.Stock, erro
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("yahoo search: HTTP %d", resp.StatusCode)
+		return nil, fmt.Errorf("yahoo search: http %d", resp.StatusCode)
 	}
 	return decodeSearch(resp.Body)
 }
 
 func decodeSearch(r io.Reader) ([]domain.Stock, error) {
-	var sr searchResp
+	var sr searchResponse
 	if err := json.NewDecoder(r).Decode(&sr); err != nil {
 		return nil, err
 	}

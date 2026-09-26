@@ -27,10 +27,10 @@ func TestDigestFormat(t *testing.T) {
 }
 
 func TestNotifierDisabled(t *testing.T) {
-	if New("", "").Enabled() {
+	if New("", "").IsEnabled() {
 		t.Fatal("expected disabled")
 	}
-	if New("tok", "chat").Enabled() != true {
+	if New("tok", "chat").IsEnabled() != true {
 		t.Fatal("expected enabled")
 	}
 	if err := New("", "").Send(t.Context(), "hi"); err == nil {

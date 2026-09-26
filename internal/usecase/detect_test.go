@@ -19,10 +19,10 @@ func mkCandles(n int, base, last int64, firstClose, lastClose float64) []domain.
 			Open: 100, High: 100, Low: 100, Close: firstClose, Volume: base,
 		}
 	}
-	
+
 	out[n-1].Volume = last
 	out[n-1].Close = lastClose
-	
+
 	return out
 }
 
@@ -32,7 +32,7 @@ func TestDetectOneSpike(t *testing.T) {
 	for i := range vols {
 		vols[i] = 10_000_000
 	}
-	
+
 	hist := mkHist(vols, 100)
 	hist[19].Volume = 35_000_000
 	hist[19].Close = 103
@@ -43,15 +43,15 @@ func TestDetectOneSpike(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	if !spike || isFiltered {
 		t.Fatalf("got spike=%v filtered=%v", spike, isFiltered)
 	}
-	
+
 	if sig.Code != "BBCA" || sig.Volume != 35_000_000 || sig.Multiple < 2.0 {
 		t.Fatalf("got %+v", sig)
 	}
-	
+
 	if !sig.IsActionable() || sig.Interpretation() == "" {
 		t.Fatalf("got %+v", sig)
 	}
@@ -63,7 +63,7 @@ func TestDetectOneNoSpike(t *testing.T) {
 	for i := range vols {
 		vols[i] = 10_000_000
 	}
-	
+
 	_, spike, _, err := DetectOne("BBCA", mkHist(vols, 100), domain.DefaultSpikeRule())
 
 	if err != nil || spike {
@@ -89,20 +89,20 @@ func TestDailyIngest(t *testing.T) {
 			"BBCA": mkCandles(60, 10_000_000, 35_000_000, 100, 103),
 			"TLKM": mkCandles(60, 10_000_000, 10_000_000, 100, 100),
 		},
-		codeErrs: map[domain.Code]error{"GOTO": errors.New("yahoo: HTTP 429")},
+		codeErrs: map[domain.Code]error{"GOTO": errors.New("yahoo: http 429")},
 	}
 
 	res := DailyIngest(ctx, provider, IngestRepos{Stocks: stocks, OHLCV: ohlcv, Signals: signals},
 		[]domain.Code{"BBCA", "TLKM", "GOTO"}, domain.DefaultSpikeRule())
-	
+
 	if len(res) != 3 {
 		t.Fatalf("got %+v", res)
 	}
-	
+
 	if !res[0].HasSpike || res[0].Signal.Code != "BBCA" {
 		t.Fatalf("BBCA: %+v", res[0])
 	}
-	
+
 	if res[1].HasSpike || res[1].Reason != "no spike" {
 		t.Fatalf("TLKM: %+v", res[1])
 	}

@@ -36,10 +36,16 @@ func TestContract(t *testing.T) {
 	signals := NewSignalRepo(db)
 
 	const code = domain.Code("QTC")
-	_, _ = db.Pool.Exec(ctx, `DELETE FROM signals WHERE code='QTC'`)
-	_, _ = db.Pool.Exec(ctx, `DELETE FROM ohlcv WHERE code='QTC'`)
-	_, _ = db.Pool.Exec(ctx, `DELETE FROM watchlist WHERE code='QTC'`)
-	_, _ = db.Pool.Exec(ctx, `DELETE FROM stocks_master WHERE code='QTC'`)
+	for _, q := range []string{
+		`DELETE FROM signals WHERE code='QTC'`,
+		`DELETE FROM ohlcv WHERE code='QTC'`,
+		`DELETE FROM watchlist WHERE code='QTC'`,
+		`DELETE FROM stocks_master WHERE code='QTC'`,
+	} {
+		if _, err := db.Pool.Exec(ctx, q); err != nil {
+			t.Fatalf("cleanup: %v", err)
+		}
+	}
 
 	if _, err := stocks.Get(ctx, code); !errors.Is(err, domain.ErrStockUnknown) {
 		t.Fatalf("expected ErrStockUnknown, got %v", err)
@@ -58,7 +64,11 @@ func TestContract(t *testing.T) {
 	if err := wl.Add(ctx, domain.DefaultUser, code); err != nil {
 		t.Fatal(err)
 	}
-	if n, _ := wl.Count(ctx, domain.DefaultUser); n != 1 {
+	n, err := wl.Count(ctx, domain.DefaultUser)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
 		t.Fatalf("count = %d", n)
 	}
 	list, err := wl.List(ctx, domain.DefaultUser)
@@ -105,17 +115,29 @@ func TestContract(t *testing.T) {
 	if err := signals.Upsert(ctx, sig); err != nil {
 		t.Fatal(err)
 	}
-	if res, _ := signals.ByDate(ctx, sigDate, false); len(res) != 0 {
+	res, err = signals.ByDate(ctx, sigDate, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res) != 0 {
 		t.Fatalf("filtered leak: %+v", res)
 	}
-	if res, _ := signals.ByDate(ctx, sigDate, true); len(res) != 1 {
+	res, err = signals.ByDate(ctx, sigDate, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res) != 1 {
 		t.Fatalf("got %+v", res)
 	}
 
 	if err := wl.Remove(ctx, domain.DefaultUser, code); err != nil {
 		t.Fatal(err)
 	}
-	if n, _ := wl.Count(ctx, domain.DefaultUser); n != 0 {
+	n, err = wl.Count(ctx, domain.DefaultUser)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 0 {
 		t.Fatalf("count = %d", n)
 	}
 }

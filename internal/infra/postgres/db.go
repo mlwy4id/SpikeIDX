@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"sort"
 
@@ -34,11 +35,11 @@ func (db *DB) Close() { db.Pool.Close() }
 
 func (db *DB) Migrate(ctx context.Context) error {
 	if _, err := db.Pool.Exec(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY)`); err != nil {
-		return fmt.Errorf("migrate init: %w", err)
+		return fmt.Errorf("postgres: migrate init: %w", err)
 	}
 	entries, err := migrationFS.ReadDir(migrationDir)
 	if err != nil {
-		return fmt.Errorf("migrate read: %w", err)
+		return fmt.Errorf("postgres: migrate read: %w", err)
 	}
 	names := make([]string, 0, len(entries))
 	for _, e := range entries {
@@ -53,23 +54,30 @@ func (db *DB) Migrate(ctx context.Context) error {
 		}
 		sql, err := migrationFS.ReadFile(migrationDir + "/" + name)
 		if err != nil {
-			return fmt.Errorf("migrate read %s: %w", name, err)
+			return fmt.Errorf("postgres: migrate read %s: %w", name, err)
 		}
-		tx, err := db.Pool.Begin(ctx)
-		if err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, string(sql)); err != nil {
-			_ = tx.Rollback(ctx)
-			return fmt.Errorf("migrate %s: %w", name, err)
-		}
-		if _, err := tx.Exec(ctx, `INSERT INTO schema_migrations (name) VALUES ($1)`, name); err != nil {
-			_ = tx.Rollback(ctx)
-			return err
-		}
-		if err := tx.Commit(ctx); err != nil {
+		if err := db.applyMigration(ctx, name, string(sql)); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (db *DB) applyMigration(ctx context.Context, name, sql string) (err error) {
+	tx, err := db.Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			err = errors.Join(err, tx.Rollback(ctx))
+		}
+	}()
+	if _, err = tx.Exec(ctx, sql); err != nil {
+		return fmt.Errorf("postgres: migrate %s: %w", name, err)
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO schema_migrations (name) VALUES ($1)`, name); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }

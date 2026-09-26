@@ -23,10 +23,10 @@ ON CONFLICT (code, date) DO UPDATE SET
 	return err
 }
 
-func (r *SignalRepo) ByDate(ctx context.Context, date domain.TradingDate, includeFiltered bool) ([]domain.Signal, error) {
+func (r *SignalRepo) ByDate(ctx context.Context, date domain.TradingDate, shouldIncludeFiltered bool) ([]domain.Signal, error) {
 	q := `SELECT code, date, volume, avg20, multiple, zscore, close, pct_change, adl, adl_slope5, is_filtered
 	      FROM signals WHERE date=$1::date`
-	if !includeFiltered {
+	if !shouldIncludeFiltered {
 		q += ` AND is_filtered=false`
 	}
 	q += ` ORDER BY multiple DESC`
