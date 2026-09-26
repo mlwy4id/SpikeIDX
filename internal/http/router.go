@@ -1,0 +1,30 @@
+package http
+
+import (
+	"spikeidx/internal/domain"
+
+	"github.com/gin-gonic/gin"
+)
+
+// Deps wires delivery to domain interfaces. Handlers stay thin:
+// validate input, call usecase, map domain errors to HTTP status.
+type Deps struct {
+	Stocks    domain.StockRepository
+	Watchlist domain.WatchlistRepository
+	OHLCV     domain.OHLCVRepository
+	Signals   domain.SignalRepository
+	Primary   domain.MarketDataProvider
+	Fallback  domain.MarketDataProvider
+}
+
+func (d *Deps) Router() *gin.Engine {
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.GET("/health", d.health)
+	r.GET("/api/v1/search", d.search)
+	r.GET("/api/v1/watchlist", d.watchlistList)
+	r.POST("/api/v1/watchlist", d.watchlistAdd)
+	r.DELETE("/api/v1/watchlist/:code", d.watchlistDelete)
+	r.GET("/api/v1/signals", d.signals)
+	return r
+}
