@@ -8,7 +8,7 @@ import (
 
 // Deps wires delivery to domain interfaces. Handlers stay thin:
 // validate input, call usecase, map domain errors to HTTP status.
-type Deps struct {
+type Dependencies struct {
 	Stocks    domain.StockRepository
 	Watchlist domain.WatchlistRepository
 	OHLCV     domain.OHLCVRepository
@@ -17,7 +17,7 @@ type Deps struct {
 	Fallback  domain.MarketDataProvider
 }
 
-func (d *Deps) Router() *gin.Engine {
+func (d *Dependencies) Router() *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.GET("/health", d.health)

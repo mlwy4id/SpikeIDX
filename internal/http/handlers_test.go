@@ -92,8 +92,8 @@ func (f *fakeProvider) DailyOHLCV(_ context.Context, _ domain.Code) ([]domain.Ca
 	return nil, nil
 }
 
-func testDeps() *Deps {
-	return &Deps{
+func testDeps() *Dependencies {
+	return &Dependencies{
 		Stocks: &fakeStocks{}, Watchlist: &fakeWatchlist{},
 		OHLCV: fakeOHLCV{}, Signals: fakeSignals{},
 		Primary: &fakeProvider{}, Fallback: nil,
@@ -150,7 +150,9 @@ func TestWatchlistAddInvalidIs400(t *testing.T) {
 func TestWatchlistAddThenList(t *testing.T) {
 	d := testDeps()
 	stocks := d.Stocks.(*fakeStocks)
-	_ = stocks.Ensure(context.Background(), domain.Stock{Code: "BBCA", YahooSymbol: "BBCA.JK", Name: "BBCA"})
+	if err := stocks.Ensure(context.Background(), domain.Stock{Code: "BBCA", YahooSymbol: "BBCA.JK", Name: "BBCA"}); err != nil {
+		t.Fatal(err)
+	}
 
 	req := httptest.NewRequest("POST", "/api/v1/watchlist",
 		strings.NewReader(`{"code":"bbca.jk"}`))
@@ -175,7 +177,9 @@ func TestWatchlistAddThenList(t *testing.T) {
 func TestWatchlistFullIs409(t *testing.T) {
 	d := testDeps()
 	stocks := d.Stocks.(*fakeStocks)
-	_ = stocks.Ensure(context.Background(), domain.Stock{Code: "ZZZZ", YahooSymbol: "ZZZZ.JK"})
+	if err := stocks.Ensure(context.Background(), domain.Stock{Code: "ZZZZ", YahooSymbol: "ZZZZ.JK"}); err != nil {
+		t.Fatal(err)
+	}
 	wl := d.Watchlist.(*fakeWatchlist)
 	for i := 0; i < domain.MaxWatchlist; i++ {
 		wl.codes = append(wl.codes, domain.Code(fmt.Sprintf("C%03d", i)))
