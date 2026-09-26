@@ -7,32 +7,36 @@ import (
 	"spikeidx/internal/domain"
 )
 
-func DetectOne(code domain.Code, hist []domain.OHLCV, rule domain.SpikeRule) (domain.Signal, bool, bool, error) {
+func DetectOne(code domain.Code, hist []domain.OHLCV, rule domain.SpikeRule) (sig domain.Signal, spike bool, isFiltered bool, err error) {
 	sorted := append([]domain.OHLCV(nil), hist...)
 	sort.SliceStable(sorted, func(i, j int) bool { return sorted[i].Date.Before(sorted[j].Date) })
-	avg, mult, z, pct, ok := Stats(sorted, rule)
+	avg, multiple, zScore, pctChange, ok := Stats(sorted, rule)
+	
 	if !ok {
 		return domain.Signal{}, false, false, domain.ErrInsufficientData
 	}
-	spike, filtered := IsSpike(mult, z, pct, rule)
+	
+	spike, isFiltered = IsSpike(multiple, zScore, pctChange, rule)
 	if !spike {
 		return domain.Signal{}, false, false, nil
 	}
-	adl := AccumulationDistributionLine(sorted)
+	
+	adl := ADL(sorted)
 	last := sorted[len(sorted)-1]
+	
 	return domain.Signal{
 		Code: code, Date: last.Date, Volume: last.Volume,
-		Avg20: avg, Multiple: mult, ZScore: z, Close: last.Close,
-		PctChange: pct, ADL: adl[len(adl)-1], ADLSlope5: AccumulationDistributionLineSlope5(adl),
-		IsFiltered: filtered,
-	}, true, filtered, nil
+		Avg20: avg, Multiple: multiple, ZScore: zScore, Close: last.Close,
+		PctChange: pctChange, ADL: adl[len(adl)-1], ADLSlope5: ADLSlope5(adl),
+		IsFiltered: isFiltered,
+	}, true, isFiltered, nil
 }
 
 type SymbolResult struct {
-	Code   domain.Code
-	Spike  bool
-	Signal domain.Signal
-	Reason string
+	Code     domain.Code
+	HasSpike bool
+	Signal   domain.Signal
+	Reason   string
 }
 
 type IngestRepos struct {
@@ -41,43 +45,58 @@ type IngestRepos struct {
 	Signals domain.SignalRepository
 }
 
-func DailyIngest(ctx context.Context, provider domain.MarketDataProvider, r IngestRepos, codes []domain.Code, rule domain.SpikeRule) []SymbolResult {
+func DailyIngest(ctx context.Context, provider domain.MarketDataProvider, repos IngestRepos, codes []domain.Code, rule domain.SpikeRule) []SymbolResult {
 	out := make([]SymbolResult, 0, len(codes))
+
 	for _, code := range codes {
 		res := SymbolResult{Code: code}
-		if _, err := r.Stocks.Get(ctx, code); err != nil {
-			_ = r.Stocks.Ensure(ctx, domain.Stock{Code: code, YahooSymbol: code.YahooSymbol(), Name: string(code)})
+
+		if _, err := repos.Stocks.Get(ctx, code); err != nil {
+			if err := repos.Stocks.Ensure(ctx, domain.Stock{Code: code, YahooSymbol: code.YahooSymbol(), Name: string(code)}); err != nil {
+				res.Reason = err.Error()
+				out = append(out, res)
+				continue
+			}
 		}
-		if _, err := Backfill(ctx, provider, r.OHLCV, code); err != nil {
+		
+		if _, err := Backfill(ctx, provider, repos.OHLCV, code); err != nil {
 			res.Reason = err.Error()
 			out = append(out, res)
 			continue
 		}
-		hist, err := r.OHLCV.History(ctx, code, 60)
+		
+		hist, err := repos.OHLCV.History(ctx, code, 60)
+
 		if err != nil {
 			res.Reason = err.Error()
 			out = append(out, res)
 			continue
 		}
+		
 		sig, spike, _, err := DetectOne(code, hist, rule)
+
 		if err != nil {
 			res.Reason = err.Error()
 			out = append(out, res)
 			continue
 		}
+		
 		if !spike {
 			res.Reason = "no spike"
 			out = append(out, res)
 			continue
 		}
-		if err := r.Signals.Upsert(ctx, sig); err != nil {
+		
+		if err := repos.Signals.Upsert(ctx, sig); err != nil {
 			res.Reason = err.Error()
 			out = append(out, res)
 			continue
 		}
-		res.Spike = true
+		
+		res.HasSpike = true
 		res.Signal = sig
 		out = append(out, res)
 	}
+	
 	return out
 }

@@ -15,6 +15,7 @@ func (f *fakeStocks) Ensure(_ context.Context, s domain.Stock) error {
 	if f.data == nil {
 		f.data = map[domain.Code]domain.Stock{}
 	}
+	
 	f.data[s.Code] = s
 	return nil
 }
@@ -23,6 +24,7 @@ func (f *fakeStocks) Get(_ context.Context, code domain.Code) (domain.Stock, err
 	if s, ok := f.data[code]; ok {
 		return s, nil
 	}
+	
 	return domain.Stock{}, domain.ErrStockUnknown
 }
 
@@ -32,9 +34,11 @@ type fakeWatchlist struct {
 
 func (f *fakeWatchlist) List(_ context.Context, _ domain.UserID) ([]domain.Code, error) {
 	out := []domain.Code{}
+
 	for c := range f.data {
 		out = append(out, c)
 	}
+	
 	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
 	return out, nil
 }
@@ -43,6 +47,7 @@ func (f *fakeWatchlist) Add(_ context.Context, _ domain.UserID, code domain.Code
 	if f.data == nil {
 		f.data = map[domain.Code]bool{}
 	}
+	
 	f.data[code] = true
 	return nil
 }
@@ -64,9 +69,11 @@ func (f *fakeOHLCV) UpsertBatch(_ context.Context, rows []domain.OHLCV) error {
 	if f.data == nil {
 		f.data = map[domain.Code][]domain.OHLCV{}
 	}
+	
 	for _, r := range rows {
 		hist := f.data[r.Code]
 		replaced := false
+
 		for i, h := range hist {
 			if h.Date.Equal(r.Date) {
 				hist[i] = r
@@ -74,20 +81,25 @@ func (f *fakeOHLCV) UpsertBatch(_ context.Context, rows []domain.OHLCV) error {
 				break
 			}
 		}
+		
 		if !replaced {
 			hist = append(hist, r)
 		}
+		
 		sort.Slice(hist, func(i, j int) bool { return hist[i].Date.Before(hist[j].Date) })
 		f.data[r.Code] = hist
 	}
+	
 	return nil
 }
 
 func (f *fakeOHLCV) History(_ context.Context, code domain.Code, limit int) ([]domain.OHLCV, error) {
 	hist := f.data[code]
+
 	if limit > 0 && len(hist) > limit {
 		hist = hist[len(hist)-limit:]
 	}
+	
 	return append([]domain.OHLCV(nil), hist...), nil
 }
 
@@ -102,6 +114,7 @@ func (f *fakeSignals) Upsert(_ context.Context, s domain.Signal) error {
 			return nil
 		}
 	}
+	
 	f.data = append(f.data, s)
 	return nil
 }
@@ -112,11 +125,14 @@ func (f *fakeSignals) ByDate(_ context.Context, date domain.TradingDate, include
 		if !domain.NewTradingDate(e.Date).Equal(date) {
 			continue
 		}
+		
 		if e.IsFiltered && !includeFiltered {
 			continue
 		}
+		
 		out = append(out, e)
 	}
+	
 	return out, nil
 }
 
@@ -136,5 +152,6 @@ func (f *fakeProvider) DailyOHLCV(_ context.Context, code domain.Code) ([]domain
 	if err, ok := f.codeErrs[code]; ok {
 		return nil, err
 	}
+	
 	return f.candles[code], f.candleErr
 }

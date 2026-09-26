@@ -10,9 +10,11 @@ func IsTradingDay(date domain.TradingDate, holidays map[domain.TradingDate]bool)
 	if holidays[date] {
 		return false
 	}
+	
 	switch date.Time().Weekday() {
-	case time.Saturday, time.Sunday:
-		return false
+		case time.Saturday, time.Sunday:
+			return false
 	}
+	
 	return true
 }
