@@ -1,0 +1,342 @@
+openapi: 3.0.3
+info:
+  title: SpikeIDX API
+  description: |
+    Deteksi volume spike saham Indonesia (IDX/BEI), End-of-Day.
+    Aturan spike v1: volume > 2x SMA20 AND z-score > 2.0,
+    filter noise |change| > 2% (flag is_filtered, tetap disimpan).
+    Konfirmasi: Chaikin A/D Line dari OHLCV.
+
+    Alur wajib: GET /api/v1/search?q=BBCA (auto-cache master)
+    lalu POST /api/v1/watchlist {"code":"BBCA"} (backfill jalan di background).
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Lokal (PORT default 8080, lihat config)
+tags:
+  - name: system
+    description: Kesehatan service
+  - name: search
+    description: Cari saham + cache ke stocks_master
+  - name: watchlist
+    description: Kelola watchlist (maks 100)
+  - name: signals
+    description: Sinyal volume spike per tanggal WIB
+  - name: docs
+    description: Dokumentasi API
+paths:
+  /health:
+    get:
+      tags: [system]
+      summary: Cek kesehatan service
+      operationId: health
+      responses:
+        '200':
+          description: Service sehat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+  /api/v1/search:
+    get:
+      tags: [search]
+      summary: Cari saham (Yahoo primary, IDX fallback)
+      description: Hasil otomatis di-cache ke stocks_master via Ensure. Wajib dipanggil dulu sebelum POST watchlist.
+      operationId: search
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Kata kunci (kode atau nama, mis. BBCA, bank)
+          schema:
+            type: string
+            minLength: 1
+            example: BBCA
+      responses:
+        '200':
+          description: Daftar saham cocok (bisa kosong [])
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Stock'
+        '400':
+          description: Query param q hilang
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Primary + fallback gagal (mis. Yahoo 429)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/watchlist:
+    get:
+      tags: [watchlist]
+      summary: Daftar kode watchlist
+      operationId: watchlistList
+      responses:
+        '200':
+          description: Daftar kode (selalu array, [] bila kosong — bukan null)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  example: BBCA
+        '500':
+          description: Gagal baca DB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags: [watchlist]
+      summary: Tambah kode ke watchlist + trigger backfill
+      description: |
+        Kode dinormalisasi (uppercase, trim, strip .JK) lalu divalidasi ^[A-Z]{3,4}$.
+        Backfill OHLCV jalan async (fire-and-forget, context independen).
+      operationId: watchlistAdd
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchlistAddRequest'
+            examples:
+              bbca:
+                value:
+                  code: BBCA
+      responses:
+        '201':
+          description: Berhasil, backfill berjalan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchlistAddResponse'
+        '400':
+          description: JSON tidak valid atau kode tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Kode belum ada di stocks_master — search dulu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Watchlist penuh (100/100)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Gagal tulis DB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/watchlist/{code}:
+    delete:
+      tags: [watchlist]
+      summary: Hapus kode dari watchlist
+      operationId: watchlistDelete
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Kode saham (case-insensitive, boleh .JK)
+          schema:
+            type: string
+            example: BBCA
+      responses:
+        '204':
+          description: Berhasil dihapus (tidak ada body)
+        '400':
+          description: Kode tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Gagal hapus di DB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/signals:
+    get:
+      tags: [signals]
+      summary: Sinyal spike per tanggal WIB
+      operationId: signalsByDate
+      parameters:
+        - name: date
+          in: query
+          required: false
+          description: Tanggal YYYY-MM-DD (WIB). Default hari ini WIB bila kosong.
+          schema:
+            type: string
+            format: date
+            example: '2026-09-18'
+        - name: include_filtered
+          in: query
+          required: false
+          description: Sertakan sinyal terfilter noise (|change|<=2%)? Default false.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Daftar sinyal (selalu array, [] bila kosong)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Signal'
+        '400':
+          description: Format date atau include_filtered tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Gagal baca DB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /openapi.yaml:
+    get:
+      tags: [docs]
+      summary: Spesifikasi OpenAPI mentah (YAML)
+      operationId: openAPISpec
+      responses:
+        '200':
+          description: File openapi.yaml
+          content:
+            application/yaml:
+              schema:
+                type: string
+  /swagger/index.html:
+    get:
+      tags: [docs]
+      summary: Swagger UI
+      description: UI interaktif di atas /openapi.yaml (butuh internet untuk CDN unpkg).
+      operationId: swaggerUI
+      responses:
+        '200':
+          description: Halaman HTML Swagger UI
+          content:
+            text/html:
+              schema:
+                type: string
+components:
+  schemas:
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
+    Stock:
+      type: object
+      required: [code, yahoo_symbol, name]
+      properties:
+        code:
+          type: string
+          description: Kode IDX ternormalisasi ^[A-Z]{3,4}$
+          example: BBCA
+        yahoo_symbol:
+          type: string
+          description: Simbol Yahoo (<CODE>.JK)
+          example: BBCA.JK
+        name:
+          type: string
+          example: Bank Central Asia Tbk.
+        sector:
+          type: string
+          example: Financials
+    WatchlistAddRequest:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          description: Kode saham (case-insensitive, boleh .JK, mis. bbca.jk)
+          example: BBCA
+    WatchlistAddResponse:
+      type: object
+      required: [code, status]
+      properties:
+        code:
+          type: string
+          example: BBCA
+        status:
+          type: string
+          example: backfilling
+    Signal:
+      type: object
+      required: [code, date, volume, avg20, multiple, z_score, close, pct_change, adl, adl_slope5, is_filtered, interpretation]
+      properties:
+        code:
+          type: string
+          example: BBCA
+        date:
+          type: string
+          format: date
+          example: '2026-09-18'
+        volume:
+          type: integer
+          format: int64
+          description: Volume lembar mentah (bukan lot)
+          example: 150000000
+        avg20:
+          type: number
+          description: Rata-rata volume 20 hari (SMA20)
+          example: 50000000
+        multiple:
+          type: number
+          description: volume / avg20 (spike bila > 2)
+          example: 3.0
+        z_score:
+          type: number
+          description: z-score populasi (bagi N; spike bila > 2.0)
+          example: 2.5
+        close:
+          type: number
+          example: 9850
+        pct_change:
+          type: number
+          description: Persen perubahan close harian (|change|>2% agar actionable)
+          example: 3.1
+        adl:
+          type: number
+          description: Chaikin A/D Line
+          example: 123456789.0
+        adl_slope5:
+          type: number
+          description: Slope ADL 5 hari (>0 akumulasi, <0 distribusi)
+          example: 1000000.0
+        is_filtered:
+          type: boolean
+          description: True bila |change|<=2% (noise, tetap disimpan)
+          example: false
+        interpretation:
+          type: string
+          description: akumulasi | distribusi | netral | terfilter (noise harga)
+          example: akumulasi
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: invalid stock code

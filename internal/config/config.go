@@ -2,6 +2,8 @@ package config
 
 import (
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Settings struct {
@@ -20,8 +22,10 @@ func getenv(key, defaultValue string) string {
 }
 
 func Load() Settings {
+	godotenv.Load(".env")
+	
 	return Settings{
-		DatabaseURL:      getenv("DATABASE_URL", "postgres://spikeidx:spikeidx@localhost:5432/spikeidx?sslmode=disable"),
+		DatabaseURL:      os.Getenv("DATABASE_URL"),
 		TelegramBotToken: os.Getenv("TELEGRAM_BOT_TOKEN"),
 		TelegramChatID:   os.Getenv("TELEGRAM_CHAT_ID"),
 		Timezone:         getenv("TZ", "Asia/Jakarta"),
