@@ -51,7 +51,13 @@ Docs: Swagger UI di `GET /swagger/index.html` (alias `/swagger`, `/docs`), spec 
 
 ## Next
 
-1. E2E cloud via contract test (`DATABASE_URL` user) + smoke Yahoo nyata (search → watchlist → backfill).
-2. Seed `stocks_master` IDX + uji fetch Yahoo 20–100 simbol + retry/backoff.
-3. `cmd/worker` v2 + IDX `GetStockSummary` fallback + `GetBrokerSummary` v2.
-4. Kalender libur BEI penuh + `robfig/cron` bila worker jadi long-running.
+Rencana aktif: `docs/superpowers/plans/2026-09-27-yahoo-hardening-e2e.md`.
+
+1. E2E cloud via contract test (`DATABASE_URL` user) + smoke Yahoo nyata (search → watchlist → backfill → `GET /api/v1/ohlcv/BBCA` + `GET /api/v1/signals`).
+2. Seed `stocks_master` IDX (idempoten) + uji fetch Yahoo 20–100 simbol (ukur 429/latency).
+3. Retry/backoff Yahoo (429/5xx, stdlib-only, di `internal/infra/yahoo` saja).
+4. `cmd/worker` v2 + IDX `GetStockSummary` fallback + `GetBrokerSummary` v2; kalender libur BEI penuh + `robfig/cron` bila worker jadi long-running.
+
+## Worker-minimal
+
+Single-run EOD: `go run ./cmd/worker` (butuh DB). Skip eksplisit bila weekend (kalender `nil`, weekend-only) atau watchlist kosong — exit 0, tanpa cron/`Send`. Histori via `GET /api/v1/ohlcv/:code` (oldest-first, default 60, cap 500).

@@ -70,7 +70,7 @@ Smoke: `GET /health` → `{"status":"ok"}`; `POST /api/v1/watchlist {"code":"X"}
 - `go:embed` **tidak boleh** path `..` (FS jadi kosong diam-diam) — migrasi harus di dalam `internal/infra/postgres/migrations/`.
 - `docker compose` plugin tidak tersedia di semua mesin — `docker-compose.yml` hanya untuk `api`+`worker` (tanpa service db).
 - `pkill -f <nama>` pernah menggantung shell session — bunuh proses via pid file (`kill $(cat /tmp/api.pid)`).
-- Nama fungsi ADL yang benar: `AccumulationDistributionLine` / `...Slope5` (bukan `ADL`).
+- Nama fungsi ADL yang benar: `ADL` / `ADLSlope5` (bukan `AccumulationDistributionLine`).
 - `GET /watchlist` dan `/signals` harus return `[]`, bukan `null` (guard `nil` di handler/repo — berlaku lagi saat delivery dibangun; `SearchAndCache`/`DailyIngest` sudah jamin non-nil).
 - `STRICT_DB` / fallback-memory di compose/`.env.example` lama adalah no-op (tidak dibaca `config`) — sudah dihapus. Jangan perkenalkan lagi.
 - `docs/` kini terversioning (baris `/docs` di `.gitignore` dihapus) — `AGENTS.md` + report wajib ikut commit.

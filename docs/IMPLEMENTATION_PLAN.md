@@ -157,7 +157,7 @@ Legenda status: `done` = selesai + gate hijau | `pending` = belum dikerjakan | `
 | domain | `PriceFilterEnabled` → `IsPriceFilterEnabled`; test `in/want` → `input/expected` | done |
 | usecase | `DetectOne` return anonim → `(sig, spike, isFiltered, err)`; `SymbolResult.Spike` → `HasSpike`; `mult` → `multiple`; `z/pct` → `zScore/pctChange`; `AccumulationDistributionLine` → `ADL`; `...Slope5` → `ADLSlope5`; `r/store` → `repos`; boundary table → `input*/expected*` | done |
 | infra/http | `Notifier.Enabled()` → `IsEnabled()`; `config.Config` → `Settings`; `infra.Repos` → `Repositories`; `http.Deps` → `Dependencies`; `chartResp/searchResp` → `*Response`; `f64/i64` → `floatValue/intValue`; `includeFiltered` → `shouldIncludeFiltered`; error `HTTP/BOT_TOKEN` → lowercase; migrate error → prefix `postgres:` | done |
-| docs hutang | `AGENTS.md` §6 masih tulis nama lama `AccumulationDistributionLine` (kini `ADL`/`ADLSlope5`) | pending |
+| docs hutang | `AGENTS.md` §6 kini tulis nama benar `ADL`/`ADLSlope5` (sinkron 2026-09-27) | done |
 
 ## 7. Backlog terurut
 
