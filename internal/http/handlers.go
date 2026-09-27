@@ -140,8 +140,8 @@ func (d *Dependencies) ohlcv(c *gin.Context) {
 	limit := defaultHistoryLimit
 	if s := c.Query("limit"); s != "" {
 		limit, err = strconv.Atoi(s)
-		if err != nil || limit < 0 {
-			c.JSON(stdhttp.StatusBadRequest, gin.H{"error": "invalid limit, want 0-500"})
+		if err != nil || limit <= 0 {
+			c.JSON(stdhttp.StatusBadRequest, gin.H{"error": "invalid limit, want 1-500"})
 			return
 		}
 		if limit > maxHistoryLimit {

@@ -231,10 +231,10 @@ paths:
         - name: limit
           in: query
           required: false
-          description: Jumlah baris terakhir (0 = tanpa batas di repo, tapi endpoint cap 500)
+          description: Jumlah baris terakhir (default 60, cap 500)
           schema:
             type: integer
-            minimum: 0
+            minimum: 1
             maximum: 500
             default: 60
       responses:

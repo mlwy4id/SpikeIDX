@@ -431,7 +431,7 @@ func TestOHLCVLimitCapped(t *testing.T) {
 func TestOHLCVBadLimit(t *testing.T) {
 	d := testDeps()
 
-	for _, q := range []string{"?limit=abc", "?limit=-1"} {
+	for _, q := range []string{"?limit=abc", "?limit=-1", "?limit=0"} {
 		req := httptest.NewRequest("GET", "/api/v1/ohlcv/BBCA"+q, nil)
 		rec := httptest.NewRecorder()
 		d.Router().ServeHTTP(rec, req)
