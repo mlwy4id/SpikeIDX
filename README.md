@@ -46,6 +46,8 @@ Worker v2 cron: `30 16 * * 1-5 TZ=Asia/Jakarta ./worker`.
 - `GET /api/v1/watchlist` / `POST /api/v1/watchlist {"code":"BBCA"}` / `DELETE /api/v1/watchlist/BBCA`
 - `GET /api/v1/signals?date=2026-09-18`
 
+Docs: Swagger UI di `GET /swagger/index.html` (alias `/swagger`, `/docs`), spec mentah di `GET /openapi.yaml` (sumber: `internal/http/openapi.yaml`).
+
 ## Next
 
 1. E2E cloud via contract test (`DATABASE_URL` user) + smoke Yahoo nyata (search → watchlist → backfill).
