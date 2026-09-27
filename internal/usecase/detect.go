@@ -45,7 +45,7 @@ type IngestRepos struct {
 	Signals domain.SignalRepository
 }
 
-func DailyIngest(ctx context.Context, provider domain.MarketDataProvider, repos IngestRepos, codes []domain.Code, rule domain.SpikeRule) []SymbolResult {
+func DailyIngest(ctx context.Context, provider domain.MarketDataProvider, repos IngestRepos, codes []domain.Code, rule domain.SpikeRule, holidays map[domain.TradingDate]bool) []SymbolResult {
 	out := make([]SymbolResult, 0, len(codes))
 
 	for _, code := range codes {
@@ -68,6 +68,12 @@ func DailyIngest(ctx context.Context, provider domain.MarketDataProvider, repos 
 		hist, err := repos.OHLCV.History(ctx, code, 60)
 		if err != nil {
 			res.Reason = err.Error()
+			out = append(out, res)
+			continue
+		}
+
+		if missing, gapped := DetectGap(hist, func(d domain.TradingDate) bool { return IsTradingDay(d, holidays) }); gapped {
+			res.Reason = "gap:" + missing.String() + " missing"
 			out = append(out, res)
 			continue
 		}

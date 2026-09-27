@@ -92,7 +92,7 @@ func TestDailyIngest(t *testing.T) {
 	}
 
 	res := DailyIngest(ctx, provider, IngestRepos{Stocks: stocks, OHLCV: ohlcv, Signals: signals},
-		[]domain.Code{"BBCA", "TLKM", "GOTO"}, domain.DefaultSpikeRule())
+		[]domain.Code{"BBCA", "TLKM", "GOTO"}, domain.DefaultSpikeRule(), nil)
 
 	if len(res) != 3 {
 		t.Fatalf("got %+v", res)
