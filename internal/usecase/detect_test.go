@@ -39,7 +39,6 @@ func TestDetectOneSpike(t *testing.T) {
 	hist[18].Close = 100
 
 	sig, spike, isFiltered, err := DetectOne("BBCA", hist, domain.DefaultSpikeRule())
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,19 +121,16 @@ func TestDailyIngest(t *testing.T) {
 
 func TestIsTradingDay(t *testing.T) {
 	sat, err := domain.ParseTradingDate("2026-09-19")
-
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	sun, err := domain.ParseTradingDate("2026-09-20")
-
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	mon, err := domain.ParseTradingDate("2026-09-21")
-
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -78,7 +78,6 @@ func TestStatsUnsortedHistory(t *testing.T) {
 	shuffled := append([]domain.OHLCV{hist[19]}, hist[:19]...)
 
 	sig, spike, isFiltered, err := DetectOne("BBCA", shuffled, domain.DefaultSpikeRule())
-
 	if err != nil {
 		t.Fatal(err)
 	}

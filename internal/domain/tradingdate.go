@@ -21,7 +21,6 @@ func NewTradingDate(t time.Time) TradingDate {
 
 func ParseTradingDate(s string) (TradingDate, error) {
 	t, err := time.ParseInLocation("2006-01-02", s, wib())
-
 	if err != nil {
 		return TradingDate{}, err
 	}

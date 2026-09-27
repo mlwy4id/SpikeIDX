@@ -19,7 +19,6 @@ func TestSearchAndCache(t *testing.T) {
 	primary := &fakeProvider{search: []domain.Stock{{Code: "BBCA", YahooSymbol: "BBCA.JK", Name: "Bank Central Asia"}}}
 
 	res, err := SearchAndCache(ctx, primary, nil, stocks, "bank")
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +58,6 @@ func TestSearchAndCacheBothFail(t *testing.T) {
 func TestSearchAndCacheEmpty(t *testing.T) {
 	ctx := context.Background()
 	res, err := SearchAndCache(ctx, &fakeProvider{}, nil, &fakeStocks{}, "zzz")
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +84,6 @@ func TestBackfill(t *testing.T) {
 	}
 
 	hist, err := store.History(ctx, "BBCA", 0)
-
 	if err != nil {
 		t.Fatal(err)
 	}

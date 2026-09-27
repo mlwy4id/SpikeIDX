@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"spikeidx/internal/domain"
 
@@ -27,7 +28,7 @@ func (f *fakeStocks) Ensure(_ context.Context, s domain.Stock) error {
 	if f.data == nil {
 		f.data = map[domain.Code]domain.Stock{}
 	}
-	
+
 	f.data[s.Code] = s
 	return nil
 }
@@ -70,11 +71,19 @@ func (f *fakeWatchlist) Count(_ context.Context, _ domain.UserID) (int, error) {
 	return len(f.codes), nil
 }
 
-type fakeOHLCV struct{}
+type fakeOHLCV struct {
+	rows     []domain.OHLCV
+	gotLimit int
+}
 
 func (fakeOHLCV) UpsertBatch(_ context.Context, _ []domain.OHLCV) error { return nil }
-func (fakeOHLCV) History(_ context.Context, _ domain.Code, _ int) ([]domain.OHLCV, error) {
-	return nil, nil
+func (f *fakeOHLCV) History(_ context.Context, _ domain.Code, limit int) ([]domain.OHLCV, error) {
+	f.gotLimit = limit
+	rows := append([]domain.OHLCV(nil), f.rows...)
+	if limit > 0 && len(rows) > limit {
+		rows = rows[len(rows)-limit:]
+	}
+	return rows, nil
 }
 
 type fakeSignals struct{}
@@ -100,7 +109,7 @@ func (f *fakeProvider) DailyOHLCV(_ context.Context, _ domain.Code) ([]domain.Ca
 func testDeps() *Dependencies {
 	return &Dependencies{
 		Stocks: &fakeStocks{}, Watchlist: &fakeWatchlist{},
-		OHLCV: fakeOHLCV{}, Signals: fakeSignals{},
+		OHLCV: &fakeOHLCV{}, Signals: fakeSignals{},
 		Primary: &fakeProvider{}, Fallback: nil,
 	}
 }
@@ -311,5 +320,124 @@ func TestSearchMissingQ(t *testing.T) {
 
 	if rec.Code != stdhttp.StatusBadRequest {
 		t.Fatalf("got %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+func ohlcvRow(day int, close float64, volume int64) domain.OHLCV {
+	return domain.OHLCV{
+		Code: "BBCA", Date: time.Date(2026, 9, day, 12, 0, 0, 0, time.UTC),
+		Open: close - 1, High: close + 1, Low: close - 2, Close: close, Volume: volume,
+	}
+}
+
+func TestOHLCVReturnsRows(t *testing.T) {
+	d := testDeps()
+	d.OHLCV.(*fakeOHLCV).rows = []domain.OHLCV{ohlcvRow(17, 100, 1000), ohlcvRow(18, 102, 2000)}
+	req := httptest.NewRequest("GET", "/api/v1/ohlcv/BBCA", nil)
+	rec := httptest.NewRecorder()
+	d.Router().ServeHTTP(rec, req)
+
+	if rec.Code != 200 {
+		t.Fatalf("got %d %s", rec.Code, rec.Body.String())
+	}
+
+	var out []map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(out) != 2 || out[0]["date"] != "2026-09-17" || out[1]["date"] != "2026-09-18" {
+		t.Fatalf("got %v", out)
+	}
+
+	if out[1]["close"] != 102.0 || out[1]["volume"] != 2000.0 {
+		t.Fatalf("got %v", out[1])
+	}
+}
+
+func TestOHLCVEmptyIsArray(t *testing.T) {
+	d := testDeps()
+	req := httptest.NewRequest("GET", "/api/v1/ohlcv/BBCA", nil)
+	rec := httptest.NewRecorder()
+	d.Router().ServeHTTP(rec, req)
+
+	if rec.Code != 200 || strings.TrimSpace(rec.Body.String()) != "[]" {
+		t.Fatalf("got %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestOHLCVInvalidCode(t *testing.T) {
+	d := testDeps()
+	req := httptest.NewRequest("GET", "/api/v1/ohlcv/!!!", nil)
+	rec := httptest.NewRecorder()
+	d.Router().ServeHTTP(rec, req)
+
+	if rec.Code != stdhttp.StatusBadRequest {
+		t.Fatalf("got %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestOHLCVDefaultLimit60(t *testing.T) {
+	d := testDeps()
+	req := httptest.NewRequest("GET", "/api/v1/ohlcv/BBCA", nil)
+	rec := httptest.NewRecorder()
+	d.Router().ServeHTTP(rec, req)
+
+	if rec.Code != 200 {
+		t.Fatalf("got %d %s", rec.Code, rec.Body.String())
+	}
+
+	if got := d.OHLCV.(*fakeOHLCV).gotLimit; got != 60 {
+		t.Fatalf("got limit %d, want 60", got)
+	}
+}
+
+func TestOHLCVLimitParam(t *testing.T) {
+	d := testDeps()
+	d.OHLCV.(*fakeOHLCV).rows = []domain.OHLCV{ohlcvRow(17, 100, 1000), ohlcvRow(18, 102, 2000)}
+	req := httptest.NewRequest("GET", "/api/v1/ohlcv/BBCA?limit=1", nil)
+	rec := httptest.NewRecorder()
+	d.Router().ServeHTTP(rec, req)
+
+	if rec.Code != 200 {
+		t.Fatalf("got %d %s", rec.Code, rec.Body.String())
+	}
+
+	var out []map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(out) != 1 || out[0]["date"] != "2026-09-18" {
+		t.Fatalf("got %v", out)
+	}
+}
+
+func TestOHLCVLimitCapped(t *testing.T) {
+	d := testDeps()
+	req := httptest.NewRequest("GET", "/api/v1/ohlcv/BBCA?limit=9999", nil)
+	rec := httptest.NewRecorder()
+	d.Router().ServeHTTP(rec, req)
+
+	if rec.Code != 200 {
+		t.Fatalf("got %d %s", rec.Code, rec.Body.String())
+	}
+
+	if got := d.OHLCV.(*fakeOHLCV).gotLimit; got != 500 {
+		t.Fatalf("got limit %d, want 500", got)
+	}
+}
+
+func TestOHLCVBadLimit(t *testing.T) {
+	d := testDeps()
+
+	for _, q := range []string{"?limit=abc", "?limit=-1"} {
+		req := httptest.NewRequest("GET", "/api/v1/ohlcv/BBCA"+q, nil)
+		rec := httptest.NewRecorder()
+		d.Router().ServeHTTP(rec, req)
+
+		if rec.Code != stdhttp.StatusBadRequest {
+			t.Fatalf("%s: got %d %s", q, rec.Code, rec.Body.String())
+		}
 	}
 }

@@ -7,7 +7,6 @@ import (
 
 func TestParseTradingDateRoundTrip(t *testing.T) {
 	d, err := ParseTradingDate("2026-09-18")
-
 	if err != nil {
 		t.Fatal(err)
 	}

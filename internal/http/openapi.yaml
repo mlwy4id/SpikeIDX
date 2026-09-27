@@ -22,6 +22,8 @@ tags:
     description: Kelola watchlist (maks 100)
   - name: signals
     description: Sinyal volume spike per tanggal WIB
+  - name: ohlcv
+    description: Histori OHLCV per kode (untuk inspeksi candle)
   - name: docs
     description: Dokumentasi API
 paths:
@@ -212,6 +214,50 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /api/v1/ohlcv/{code}:
+    get:
+      tags: [ohlcv]
+      summary: Histori OHLCV satu kode (oldest-first)
+      description: Limit default 60 (jendela deteksi), di-cap 500. Kode valid tanpa baris → [].
+      operationId: ohlcvHistory
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Kode saham (case-insensitive, boleh .JK)
+          schema:
+            type: string
+            example: BBCA
+        - name: limit
+          in: query
+          required: false
+          description: Jumlah baris terakhir (0 = tanpa batas di repo, tapi endpoint cap 500)
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 500
+            default: 60
+      responses:
+        '200':
+          description: Baris OHLCV oldest-first (selalu array, [] bila kosong)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OHLCV'
+        '400':
+          description: Kode atau limit tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Gagal baca DB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /openapi.yaml:
     get:
       tags: [docs]
@@ -333,6 +379,35 @@ components:
           type: string
           description: akumulasi | distribusi | netral | terfilter (noise harga)
           example: akumulasi
+    OHLCV:
+      type: object
+      required: [code, date, open, high, low, close, volume]
+      properties:
+        code:
+          type: string
+          example: BBCA
+        date:
+          type: string
+          format: date
+          description: Tanggal WIB (YYYY-MM-DD)
+          example: '2026-09-18'
+        open:
+          type: number
+          example: 9840
+        high:
+          type: number
+          example: 9900
+        low:
+          type: number
+          example: 9820
+        close:
+          type: number
+          example: 9850
+        volume:
+          type: integer
+          format: int64
+          description: Volume lembar mentah (bukan lot)
+          example: 150000000
     Error:
       type: object
       required: [error]

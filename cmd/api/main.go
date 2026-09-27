@@ -16,7 +16,6 @@ func main() {
 	cfg := config.Load()
 	ctx := context.Background()
 	repos, err := infra.WireStrict(ctx, cfg.DatabaseURL)
-
 	if err != nil {
 		log.Fatalf("wire: %v", err)
 	}

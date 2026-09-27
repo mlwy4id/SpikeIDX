@@ -33,7 +33,6 @@ func (d *Dependencies) search(c *gin.Context) {
 	}
 
 	res, err := usecase.SearchAndCache(c.Request.Context(), d.Primary, d.Fallback, d.Stocks, q)
-
 	if err != nil {
 		c.JSON(stdhttp.StatusBadGateway, gin.H{"error": err.Error()})
 		return
@@ -52,7 +51,6 @@ func (d *Dependencies) search(c *gin.Context) {
 
 func (d *Dependencies) watchlistList(c *gin.Context) {
 	list, err := d.Watchlist.List(c.Request.Context(), domain.DefaultUser)
-
 	if err != nil {
 		c.JSON(stdhttp.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -80,7 +78,6 @@ func (d *Dependencies) watchlistAdd(c *gin.Context) {
 	}
 
 	code, err := usecase.AddToWatchlist(c.Request.Context(), d.Stocks, d.Watchlist, req.Code)
-
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrInvalidCode):
@@ -119,6 +116,53 @@ func (d *Dependencies) watchlistDelete(c *gin.Context) {
 	c.Status(stdhttp.StatusNoContent)
 }
 
+type ohlcvResponse struct {
+	Code   string  `json:"code"`
+	Date   string  `json:"date"`
+	Open   float64 `json:"open"`
+	High   float64 `json:"high"`
+	Low    float64 `json:"low"`
+	Close  float64 `json:"close"`
+	Volume int64   `json:"volume"`
+}
+
+const (
+	defaultHistoryLimit = 60
+	maxHistoryLimit     = 500
+)
+
+func (d *Dependencies) ohlcv(c *gin.Context) {
+	code, err := domain.ParseCode(c.Param("code"))
+	if err != nil {
+		c.JSON(stdhttp.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	limit := defaultHistoryLimit
+	if s := c.Query("limit"); s != "" {
+		limit, err = strconv.Atoi(s)
+		if err != nil || limit < 0 {
+			c.JSON(stdhttp.StatusBadRequest, gin.H{"error": "invalid limit, want 0-500"})
+			return
+		}
+		if limit > maxHistoryLimit {
+			limit = maxHistoryLimit
+		}
+	}
+	rows, err := d.OHLCV.History(c.Request.Context(), code, limit)
+	if err != nil {
+		c.JSON(stdhttp.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	out := make([]ohlcvResponse, 0, len(rows))
+	for _, o := range rows {
+		out = append(out, ohlcvResponse{
+			Code: string(o.Code), Date: domain.NewTradingDate(o.Date).String(),
+			Open: o.Open, High: o.High, Low: o.Low, Close: o.Close, Volume: o.Volume,
+		})
+	}
+	c.JSON(stdhttp.StatusOK, out)
+}
+
 type signalResponse struct {
 	Code           string  `json:"code"`
 	Date           string  `json:"date"`
@@ -142,7 +186,6 @@ func (d *Dependencies) signals(c *gin.Context) {
 	} else {
 		var err error
 		date, err = domain.ParseTradingDate(s)
-
 		if err != nil {
 			c.JSON(stdhttp.StatusBadRequest, gin.H{"error": "invalid date, want YYYY-MM-DD"})
 			return
@@ -161,7 +204,6 @@ func (d *Dependencies) signals(c *gin.Context) {
 	}
 
 	res, err := d.Signals.ByDate(c.Request.Context(), date, shouldIncludeFiltered)
-
 	if err != nil {
 		c.JSON(stdhttp.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

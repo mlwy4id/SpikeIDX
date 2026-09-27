@@ -22,8 +22,9 @@ func getenv(key, defaultValue string) string {
 }
 
 func Load() Settings {
-	godotenv.Load(".env")
-	
+	// .env hilang bukan error: env bisa datang dari environment/kompose.
+	_ = godotenv.Load(".env") //nolint:errcheck // fallback ke OS env disengaja
+
 	return Settings{
 		DatabaseURL:      os.Getenv("DATABASE_URL"),
 		TelegramBotToken: os.Getenv("TELEGRAM_BOT_TOKEN"),

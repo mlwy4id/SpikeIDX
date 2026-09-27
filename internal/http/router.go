@@ -30,5 +30,6 @@ func (d *Dependencies) Router() *gin.Engine {
 	r.POST("/api/v1/watchlist", d.watchlistAdd)
 	r.DELETE("/api/v1/watchlist/:code", d.watchlistDelete)
 	r.GET("/api/v1/signals", d.signals)
+	r.GET("/api/v1/ohlcv/:code", d.ohlcv)
 	return r
 }

@@ -8,7 +8,6 @@ import (
 
 func AddToWatchlist(ctx context.Context, stocks domain.StockRepository, wl domain.WatchlistRepository, input string) (domain.Code, error) {
 	code, err := domain.ParseCode(input)
-
 	if err != nil {
 		return "", err
 	}
@@ -18,7 +17,6 @@ func AddToWatchlist(ctx context.Context, stocks domain.StockRepository, wl domai
 	}
 
 	n, err := wl.Count(ctx, domain.DefaultUser)
-
 	if err != nil {
 		return "", err
 	}
@@ -36,7 +34,6 @@ func AddToWatchlist(ctx context.Context, stocks domain.StockRepository, wl domai
 
 func RemoveFromWatchlist(ctx context.Context, wl domain.WatchlistRepository, input string) error {
 	code, err := domain.ParseCode(input)
-
 	if err != nil {
 		return err
 	}

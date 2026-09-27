@@ -8,7 +8,6 @@ import (
 
 func Backfill(ctx context.Context, provider domain.MarketDataProvider, repos domain.OHLCVRepository, code domain.Code) (int, error) {
 	candles, err := provider.DailyOHLCV(ctx, code)
-
 	if err != nil {
 		return 0, err
 	}

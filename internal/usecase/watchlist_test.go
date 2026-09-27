@@ -18,7 +18,6 @@ func TestAddToWatchlist(t *testing.T) {
 	}
 
 	code, err := AddToWatchlist(ctx, stocks, wl, "bbca.jk")
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +27,6 @@ func TestAddToWatchlist(t *testing.T) {
 	}
 
 	n, err := wl.Count(ctx, domain.DefaultUser)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +95,6 @@ func TestRemoveFromWatchlist(t *testing.T) {
 	}
 
 	n, err := wl.Count(ctx, domain.DefaultUser)
-
 	if err != nil {
 		t.Fatal(err)
 	}

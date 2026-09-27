@@ -1,0 +1,32 @@
+# SpikeIDX lint config (golangci-lint v2).
+# Run: golangci-lint run ./...  (lint) | golangci-lint fmt ./... (format)
+version: "2"
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gofumpt:
+      # WAJIB: tanpa ini gofumpt (via golangci) mengira spikeidx/... adalah
+      # stdlib (aturan joinStdImports) dan menuntut grup import digabung —
+      # bertentangan dengan goimports local-prefixes. Terbukti via eksperimen
+      # langsung ke library (ModulePath="" kotor, ="spikeidx" bersih).
+      module-path: spikeidx
+    goimports:
+      local-prefixes: [spikeidx]
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - misspell
+    - staticcheck
+    - unconvert
+    - unused
+  settings:
+    errcheck:
+      check-blank: true
+  exclusions:
+    presets:
+      - std-error-handling

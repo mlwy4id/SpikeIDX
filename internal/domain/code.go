@@ -21,7 +21,6 @@ func ParseCode(input string) (Code, error) {
 
 func MustParseCode(input string) Code {
 	c, err := ParseCode(input)
-
 	if err != nil {
 		panic(err)
 	}

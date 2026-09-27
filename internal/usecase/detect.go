@@ -66,7 +66,6 @@ func DailyIngest(ctx context.Context, provider domain.MarketDataProvider, repos 
 		}
 
 		hist, err := repos.OHLCV.History(ctx, code, 60)
-
 		if err != nil {
 			res.Reason = err.Error()
 			out = append(out, res)
@@ -74,7 +73,6 @@ func DailyIngest(ctx context.Context, provider domain.MarketDataProvider, repos 
 		}
 
 		sig, spike, _, err := DetectOne(code, hist, rule)
-
 		if err != nil {
 			res.Reason = err.Error()
 			out = append(out, res)

@@ -45,6 +45,7 @@ Worker v2 cron: `30 16 * * 1-5 TZ=Asia/Jakarta ./worker`.
 - `GET /api/v1/search?q=bank`
 - `GET /api/v1/watchlist` / `POST /api/v1/watchlist {"code":"BBCA"}` / `DELETE /api/v1/watchlist/BBCA`
 - `GET /api/v1/signals?date=2026-09-18`
+- `GET /api/v1/ohlcv/BBCA?limit=60` (histori oldest-first, default 60, cap 500)
 
 Docs: Swagger UI di `GET /swagger/index.html` (alias `/swagger`, `/docs`), spec mentah di `GET /openapi.yaml` (sumber: `internal/http/openapi.yaml`).
 

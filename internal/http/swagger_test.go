@@ -23,7 +23,7 @@ func TestOpenAPISpecServesYAML(t *testing.T) {
 
 	body := rec.Body.String()
 
-	for _, want := range []string{"openapi:", "/api/v1/search", "/api/v1/watchlist", "/api/v1/signals"} {
+	for _, want := range []string{"openapi:", "/api/v1/search", "/api/v1/watchlist", "/api/v1/signals", "/api/v1/ohlcv"} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("spec missing %q", want)
 		}
