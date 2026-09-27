@@ -45,3 +45,20 @@ func TestNewTradingDateNormalizesToWIB(t *testing.T) {
 		t.Fatalf("got %q, want 2026-09-18", got)
 	}
 }
+
+func TestTradingDateMapKeyAcrossConstructions(t *testing.T) {
+	a, err := ParseTradingDate("2026-09-22")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	b := NewTradingDate(time.Date(2026, 9, 22, 12, 0, 0, 0, time.UTC))
+
+	if !a.Equal(b) {
+		t.Fatalf("instants differ: %v vs %v", a, b)
+	}
+
+	if m := map[TradingDate]bool{a: true}; !m[b] {
+		t.Fatal("same-day dates built separately must match as map keys (holiday lookups depend on it)")
+	}
+}

@@ -2,13 +2,21 @@ package domain
 
 import "time"
 
-func wib() *time.Location {
+// wibLocation is resolved once: LoadLocation returns a fresh *Location
+// per call, so sharing one pointer keeps TradingDate values ==-comparable
+// (map keys, holiday lookups). Without this, two separately built dates
+// for the same day never match even though instants are identical.
+var wibLocation = loadWIB()
+
+func loadWIB() *time.Location {
 	if loc, err := time.LoadLocation("Asia/Jakarta"); err == nil {
 		return loc
 	}
 
 	return time.FixedZone("WIB", 7*3600)
 }
+
+func wib() *time.Location { return wibLocation }
 
 type TradingDate struct {
 	t time.Time

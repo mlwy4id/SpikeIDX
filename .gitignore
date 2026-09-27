@@ -1,5 +1,5 @@
 .env
-worker
+/worker
 /out/
 bin/
 *.test
