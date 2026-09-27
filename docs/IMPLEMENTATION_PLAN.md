@@ -1,6 +1,6 @@
 # Implementation Plan — SpikeIDX (trackable)
 
-Tanggal: 2026-09-26 | Status: v1 API + Yahoo E2E berjalan lokal; E2E cloud + worker menunggu.
+Tanggal: 2026-09-27 | Status: v1 API + Yahoo E2E berjalan lokal; seed + probe 20–100 + retry/backoff done; E2E cloud + worker menunggu.
 
 Legenda status: `done` = selesai + gate hijau | `pending` = belum dikerjakan | `blocked` = butuh input/kredensial user.
 
@@ -123,7 +123,8 @@ Legenda status: `done` = selesai + gate hijau | `pending` = belum dikerjakan | `
 | E-02 | `go run ./cmd/api` auto-migrate 001–003 → `GET /health` ok | ready (run 27 Sep mentok `42P05` di URL lama; ulangi dengan URL 5432) |
 | E-03 | Live Yahoo: search → cache master → watchlist → backfill WIB terisi → `GET /signals?date=<today-WIB>` queryable (`[]` bukan null) | ready (plus `GET /ohlcv/:code` untuk inspeksi candle) |
 | E-04 | Worker-minimal dry-run 1 simbol → log per-simbol + digest stdout | ready (`go run ./cmd/worker` butuh DB;catatan: weekend → skip) |
-| Non-goals | no 20–100 load, no retry/backoff, no Telegram Send | — |
+| Non-goals | no Telegram Send | — |
+| Selesai 2026-09-27 | 20–100 load + retry/backoff | done (probe `scripts/fetch_probe/`: 20-run ok=20 429=0; 100-run ok=97 3×404 stale tickers; retry 429/5xx max-3 di `infra/yahoo`) |
 
 ### 5.4 Gap + kalender
 
@@ -145,10 +146,10 @@ Legenda status: `done` = selesai + gate hijau | `pending` = belum dikerjakan | `
 
 | ID | Risiko | Mitigasi | Status |
 |---|---|---|---|
-| R-01 | DB-down jam 16:30 = miss total | worker-minimal exit non-zero agar cron alert | pending |
-| R-02 | Auto-migrate concurrent api+worker race | E2E sekuensial dulu | pending |
-| R-03 | 1 req/s × 100 ≈ 100s | ukur latency + 429 saat E2E, tanpa retry dulu | pending |
-| R-04 | README/Dockerfile basi | sinkron saat worker-minimal mendarat | pending |
+| R-01 | DB-down jam 16:30 = miss total | worker-minimal exit non-zero agar cron alert | done (verifikasi 2026-09-27: URL invalid → `wire: ... connection refused`, exit=1) |
+| R-02 | Auto-migrate concurrent api+worker race | E2E sekuensial dulu | done (disiplin sekuensial didokumentasikan di `README.md`) |
+| R-03 | 1 req/s × 100 ≈ 100s | ukur latency + 429 saat E2E, tanpa retry dulu | done (baseline terukur + retry 429/5xx max-3 mendarat di `infra/yahoo`) |
+| R-04 | README/Dockerfile basi | sinkron saat worker-minimal mendarat | done (README + AGENTS sinkron 2026-09-27; `docker build -t spikeidx:plan .` sukses) |
 
 ## 6. Naming cleanup 2026-09-26 (sudah diterapkan, gate hijau)
 
@@ -164,7 +165,7 @@ Legenda status: `done` = selesai + gate hijau | `pending` = belum dikerjakan | `
 | Prioritas | Item | Status |
 |---|---|---|
 | 1 | E2E cloud + smoke Yahoo nyata | blocked (butuh `DATABASE_URL`) |
-| 2 | Seed `stocks_master` + uji 20–100 simbol + retry/backoff + ukur 429 | pending |
+| 2 | Seed `stocks_master` + uji 20–100 simbol + retry/backoff + ukur 429 | done 2026-09-27 (`SeedStocks` idempoten + `scripts/seed_stocks.go`; probe `scripts/fetch_probe/`; retry di `infra/yahoo`) |
 | 3 | `cmd/worker` v2 + IDX `GetStockSummary`/`GetBrokerSummary` + kalender penuh + Telegram E2E | pending |
 | 4 | `robfig/cron` bila worker long-running | pending |
-| 5 | Sinkron `README.md` + `Dockerfile` + `AGENTS.md` gotcha ADL | pending |
+| 5 | Sinkron `README.md` + `Dockerfile` + `AGENTS.md` gotcha ADL | done 2026-09-27 |
