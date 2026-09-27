@@ -61,3 +61,4 @@ Rencana aktif: `docs/superpowers/plans/2026-09-27-yahoo-hardening-e2e.md`.
 ## Worker-minimal
 
 Single-run EOD: `go run ./cmd/worker` (butuh DB). Skip eksplisit bila weekend (kalender `nil`, weekend-only) atau watchlist kosong — exit 0, tanpa cron/`Send`. Histori via `GET /api/v1/ohlcv/:code` (oldest-first, default 60, cap 500).
+DB-down/list-gagal → exit non-zero (`wire:`/`worker: list watchlist:`) untuk cron-alert. E2E/migrasi: jalankan api lalu worker secara sekuensial, jangan konkuren agar auto-migrate tidak balapan.
