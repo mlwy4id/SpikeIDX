@@ -35,8 +35,10 @@ func TestPercentileMs(t *testing.T) {
 	if got := percentileMs(nil, 95); got != 0 {
 		t.Errorf("empty = %d, want 0", got)
 	}
-	ms := []int64{10, 20, 30, 40, 50, 60, 70, 80, 90, 100,
-		110, 120, 130, 140, 150, 160, 170, 180, 190, 200}
+	ms := []int64{
+		10, 20, 30, 40, 50, 60, 70, 80, 90, 100,
+		110, 120, 130, 140, 150, 160, 170, 180, 190, 200,
+	}
 	if got := percentileMs(ms, 95); got != 190 {
 		t.Errorf("p95 = %d, want 190", got)
 	}
