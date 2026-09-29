@@ -44,8 +44,8 @@ func TestIsSpike(t *testing.T) {
 		t.Fatal("expected ok")
 	}
 
-	if multiple < 2.0 {
-		t.Fatalf("expected multiple>2, got %f (avg %f)", multiple, avg)
+	if multiple < 1.5 {
+		t.Fatalf("expected multiple>1.5, got %f (avg %f)", multiple, avg)
 	}
 
 	spike, isFiltered := IsSpike(multiple, zScore, pctChange, rule)

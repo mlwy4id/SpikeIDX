@@ -11,7 +11,7 @@ type SpikeRule struct {
 
 func DefaultSpikeRule() SpikeRule {
 	return SpikeRule{
-		MultipleMin: 2.0, ZScoreMin: 2.0,
+		MultipleMin: 1.5, ZScoreMin: 2.0,
 		CMFWeakMin: 0.05, CMFStrongMin: 0.25,
 		PctChangeMin: 2.0, IsPriceFilterEnabled: false,
 	}

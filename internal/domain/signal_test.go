@@ -39,7 +39,7 @@ func TestSignalInterpretation(t *testing.T) {
 func TestDefaultSpikeRule(t *testing.T) {
 	r := DefaultSpikeRule()
 
-	if r.MultipleMin != 2.0 || r.ZScoreMin != 2.0 {
+	if r.MultipleMin != 1.5 || r.ZScoreMin != 2.0 {
 		t.Fatalf("volume thresholds changed: %+v", r)
 	}
 

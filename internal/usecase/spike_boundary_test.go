@@ -17,8 +17,10 @@ func TestBoundaries(t *testing.T) {
 		expectedSpike    bool
 		expectedFiltered bool
 	}{
-		{"multiple pas 2.0 bukan spike", 2.0, 2.5, 5.0, false, false},
-		{"z pas 2.0 bukan spike", 2.5, 2.0, 5.0, false, false},
+		{"multiple pas 1.5 bukan spike", 1.5, 2.5, 5.0, false, false},
+		{"multiple 1.6 spike", 1.6, 2.5, 5.0, true, false},
+		{"multiple 1.51 spike", 1.51, 2.5, 0.5, true, false},
+		{"z pas 2.0 bukan spike", 1.6, 2.0, 5.0, false, false},
 		{"pct pas 2.0 actionable", 2.5, 2.5, 2.0, true, false},
 		{"pct pas -2.0 actionable", 2.5, 2.5, -2.0, true, false},
 		{"pct sideways tetap actionable (klasifikasi)", 2.5, 2.5, 1.9, true, false},

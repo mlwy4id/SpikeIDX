@@ -47,7 +47,7 @@ func TestDetectOneSpike(t *testing.T) {
 		t.Fatalf("got spike=%v filtered=%v", spike, isFiltered)
 	}
 
-	if sig.Code != "BBCA" || sig.Volume != 35_000_000 || sig.Multiple < 2.0 {
+	if sig.Code != "BBCA" || sig.Volume != 35_000_000 || sig.Multiple < 1.5 {
 		t.Fatalf("got %+v", sig)
 	}
 
