@@ -174,6 +174,7 @@ type signalResponse struct {
 	PctChange      float64 `json:"pct_change"`
 	ADL            float64 `json:"adl"`
 	ADLSlope5      float64 `json:"adl_slope5"`
+	CMF            float64 `json:"cmf"`
 	IsFiltered     bool    `json:"is_filtered"`
 	Interpretation string  `json:"interpretation"`
 }
@@ -214,7 +215,7 @@ func (d *Dependencies) signals(c *gin.Context) {
 		out = append(out, signalResponse{
 			Code: string(s.Code), Date: domain.NewTradingDate(s.Date).String(),
 			Volume: s.Volume, Avg20: s.Avg20, Multiple: s.Multiple, ZScore: s.ZScore,
-			Close: s.Close, PctChange: s.PctChange, ADL: s.ADL, ADLSlope5: s.ADLSlope5,
+			Close: s.Close, PctChange: s.PctChange, ADL: s.ADL, ADLSlope5: s.ADLSlope5, CMF: s.CMF,
 			IsFiltered: s.IsFiltered, Interpretation: s.Interpretation(),
 		})
 	}

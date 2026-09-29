@@ -27,7 +27,7 @@ func DetectOne(code domain.Code, hist []domain.OHLCV, rule domain.SpikeRule) (si
 	return domain.Signal{
 		Code: code, Date: last.Date, Volume: last.Volume,
 		Avg20: avg, Multiple: multiple, ZScore: zScore, Close: last.Close,
-		PctChange: pctChange, ADL: adl[len(adl)-1], ADLSlope5: ADLSlope5(adl),
+		PctChange: pctChange, ADL: adl[len(adl)-1], ADLSlope5: ADLSlope5(adl), CMF: CMF(sorted),
 		IsFiltered: isFiltered,
 	}, true, isFiltered, nil
 }

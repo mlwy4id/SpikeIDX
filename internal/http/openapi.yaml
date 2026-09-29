@@ -4,8 +4,8 @@ info:
   description: |
     Deteksi volume spike saham Indonesia (IDX/BEI), End-of-Day.
     Aturan spike v1: volume > 2x SMA20 AND z-score > 2.0,
-    filter noise |change| > 2% (flag is_filtered, tetap disimpan).
-    Konfirmasi: Chaikin A/D Line dari OHLCV.
+    pct_change hanya rezim klasifikasi (sideways vs markup), bukan filter.
+    Konfirmasi: Chaikin Money Flow 20 (CMF20) + A/D Line dari OHLCV.
 
     Alur wajib: GET /api/v1/search?q=BBCA (auto-cache master)
     lalu POST /api/v1/watchlist {"code":"BBCA"} (backfill jalan di background).
@@ -189,7 +189,7 @@ paths:
         - name: include_filtered
           in: query
           required: false
-          description: Sertakan sinyal terfilter noise (|change|<=2%)? Default false.
+          description: Sertakan sinyal legacy terfilter? Default false (sinyal baru selalu actionable).
           schema:
             type: boolean
             default: false
@@ -330,7 +330,7 @@ components:
           example: backfilling
     Signal:
       type: object
-      required: [code, date, volume, avg20, multiple, z_score, close, pct_change, adl, adl_slope5, is_filtered, interpretation]
+      required: [code, date, volume, avg20, multiple, z_score, close, pct_change, adl, adl_slope5, cmf, is_filtered, interpretation]
       properties:
         code:
           type: string
@@ -361,7 +361,7 @@ components:
           example: 9850
         pct_change:
           type: number
-          description: Persen perubahan close harian (|change|>2% agar actionable)
+          description: "Persen perubahan close harian (rezim: sideways bila |change|<2%, markup bila >=2%)"                                                               
           example: 3.1
         adl:
           type: number
@@ -371,14 +371,18 @@ components:
           type: number
           description: Slope ADL 5 hari (>0 akumulasi, <0 distribusi)
           example: 1000000.0
+        cmf:
+          type: number
+          description: Chaikin Money Flow 20 (>0.25 akumulasi kuat, >0.05 lemah)
+          example: 0.31
         is_filtered:
           type: boolean
-          description: True bila |change|<=2% (noise, tetap disimpan)
+          description: Legacy; selalu false untuk sinyal baru (pct hanya klasifikasi)
           example: false
         interpretation:
           type: string
-          description: akumulasi | distribusi | netral | terfilter (noise harga)
-          example: akumulasi
+          description: akumulasi kuat/lemah sideways/markup | distribusi | netral | terfilter (legacy)
+          example: akumulasi kuat sideways
     OHLCV:
       type: object
       required: [code, date, open, high, low, close, volume]

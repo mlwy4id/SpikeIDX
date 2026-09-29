@@ -50,11 +50,11 @@ func Stats(hist []domain.OHLCV, rule domain.SpikeRule) (avg, multiple, zScore, p
 }
 
 func IsSpike(multiple, zScore, pctChange float64, rule domain.SpikeRule) (spike, isFiltered bool) {
+	// Pct tidak lagi memfilter: volume spike selalu actionable.
+	// Pct hanya rezim klasifikasi di Signal.Interpretation (sideways vs markup).
+	// pctChange dipertahankan di signature agar call site lama tetap kompilasi.
+	_ = pctChange
 	if multiple > rule.MultipleMin && zScore > rule.ZScoreMin {
-		if rule.IsPriceFilterEnabled && math.Abs(pctChange) < rule.PctChangeMin {
-			return true, true
-		}
-
 		return true, false
 	}
 
