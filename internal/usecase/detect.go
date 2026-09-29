@@ -17,25 +17,29 @@ func DetectOne(code domain.Code, hist []domain.OHLCV, rule domain.SpikeRule) (si
 	}
 
 	spike, isFiltered = IsSpike(multiple, zScore, pctChange, rule)
-	if !spike {
-		return domain.Signal{}, false, false, nil
-	}
 
 	adl := ADL(sorted)
 	last := sorted[len(sorted)-1]
 
-	return domain.Signal{
+	sig = domain.Signal{
 		Code: code, Date: last.Date, Volume: last.Volume,
 		Avg20: avg, Multiple: multiple, ZScore: zScore, Close: last.Close,
 		PctChange: pctChange, ADL: adl[len(adl)-1], ADLSlope5: ADLSlope5(adl), CMF: CMF(sorted),
 		IsFiltered: isFiltered,
-	}, true, isFiltered, nil
+	}
+
+	if !spike {
+		return sig, false, false, nil
+	}
+
+	return sig, true, isFiltered, nil
 }
 
 type SymbolResult struct {
 	Code     domain.Code
 	HasSpike bool
 	Signal   domain.Signal
+	HasData  bool
 	Reason   string
 }
 
@@ -86,6 +90,8 @@ func DailyIngest(ctx context.Context, provider domain.MarketDataProvider, repos 
 		}
 
 		if !spike {
+			res.Signal = sig
+			res.HasData = true
 			res.Reason = "no spike"
 			out = append(out, res)
 			continue
@@ -98,6 +104,7 @@ func DailyIngest(ctx context.Context, provider domain.MarketDataProvider, repos 
 		}
 
 		res.HasSpike = true
+		res.HasData = true
 		res.Signal = sig
 		out = append(out, res)
 	}
