@@ -26,6 +26,34 @@ func mkCandles(n int, base, last int64, firstClose, lastClose float64) []domain.
 	return out
 }
 
+func TestDetectOneUsesRuleWindow(t *testing.T) {
+	mk := func(n int) []domain.OHLCV {
+		day := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+		out := make([]domain.OHLCV, n)
+		for i := range out {
+			out[i] = domain.OHLCV{
+				Code: "BBCA", Date: day.AddDate(0, 0, i),
+				High: 110, Low: 90, Close: 108, Volume: 10_000_000,
+			}
+		}
+		out[n-1].Volume = 35_000_000
+		out[n-1].Close = 111
+		out[n-2].Close = 108
+		return out
+	}
+	hist := mk(30)
+	rule := domain.DefaultSpikeRule()
+	rule.ADLSlopeWindow = 3
+	sig, spike, _, err := DetectOne("BBCA", hist, rule)
+	if err != nil || !spike {
+		t.Fatalf("expected spike, got spike=%v err=%v", spike, err)
+	}
+	want := ADLSlope(ADL(hist), 3)
+	if sig.ADLSlope5 != want {
+		t.Fatalf("expected slope with window 3 = %f, got %f", want, sig.ADLSlope5)
+	}
+}
+
 func TestDetectOneSpike(t *testing.T) {
 	vols := make([]int64, 20)
 

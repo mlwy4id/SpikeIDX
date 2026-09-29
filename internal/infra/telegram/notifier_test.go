@@ -15,8 +15,8 @@ func TestDigestEmpty(t *testing.T) {
 
 func TestDigestFormat(t *testing.T) {
 	signals := []domain.Signal{
-		{Code: "BBCA", Volume: 45_000_000, Multiple: 3.1, PctChange: 2.4, ADLSlope5: 5},
-		{Code: "TLKM", Volume: 80_500_000, Multiple: 2.5, PctChange: -1.2, ADLSlope5: -3},
+		{Code: "BBCA", Volume: 45_000_000, Multiple: 3.1, PctChange: 2.4, Avg20: 10_000_000, ADLSlope5: 40_000_000},
+		{Code: "TLKM", Volume: 80_500_000, Multiple: 2.5, PctChange: -1.2, Avg20: 10_000_000, ADLSlope5: -40_000_000},
 	}
 	got := Digest("17 Sep", signals)
 	for _, want := range []string{"BBCA 45jt (3.1x avg20) +2.4%", "TLKM 80.5jt (2.5x avg20) -1.2%", "ADL netral", "ADL distribusi"} {

@@ -20,6 +20,10 @@ func DetectOne(code domain.Code, hist []domain.OHLCV, rule domain.SpikeRule) (si
 
 	adl := ADL(sorted)
 	last := sorted[len(sorted)-1]
+	window := rule.ADLSlopeWindow
+	if window <= 0 {
+		window = domain.DefaultSpikeRule().ADLSlopeWindow
+	}
 
 	sig = domain.Signal{
 		Code: code, Date: last.Date, Volume: last.Volume,

@@ -18,10 +18,14 @@ func ADL(hist []domain.OHLCV) []float64 {
 	return out
 }
 
-func ADLSlope5(adl []float64) float64 {
-	if len(adl) < 6 {
+func ADLSlope(adl []float64, window int) float64 {
+	if window <= 0 || len(adl) <= window {
 		return 0
 	}
 
-	return adl[len(adl)-1] - adl[len(adl)-6]
+	return adl[len(adl)-1] - adl[len(adl)-1-window]
+}
+
+func ADLSlope5(adl []float64) float64 {
+	return ADLSlope(adl, 5)
 }

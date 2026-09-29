@@ -19,7 +19,9 @@ type Signal struct {
 
 func (s Signal) IsActionable() bool { return !s.IsFiltered }
 
-func (s Signal) Interpretation() string {
+func (s Signal) Interpretation() string { return s.InterpretationWithRule(DefaultSpikeRule(), s.Avg20) }
+
+func (s Signal) InterpretationWithRule(rule SpikeRule, avg float64) string {
 	if s.IsFiltered {
 		return "terfilter (noise harga)"
 	}

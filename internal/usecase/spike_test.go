@@ -75,6 +75,19 @@ func TestIsSpikeFilterDisabled(t *testing.T) {
 	}
 }
 
+func TestADLSlopeWindow(t *testing.T) {
+	adl := []float64{1, 2, 3, 4, 5, 8}
+	if got := ADLSlope(adl, 5); got != 7 {
+		t.Fatalf("expected slope 7 for window 5, got %f", got)
+	}
+	if got := ADLSlope(adl, 20); got != 0 {
+		t.Fatalf("expected 0 for window larger than history, got %f", got)
+	}
+	if got := ADLSlope(adl, 2); got != 4 {
+		t.Fatalf("expected slope 4 for window 2 (8-4), got %f", got)
+	}
+}
+
 func TestADLAccumulation(t *testing.T) {
 	hist := []domain.OHLCV{
 		{High: 110, Low: 90, Close: 108, Volume: 1000},

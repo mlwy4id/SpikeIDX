@@ -7,6 +7,8 @@ type SpikeRule struct {
 	CMFStrongMin float64
 	PctChangeMin float64
 	IsPriceFilterEnabled bool
+	ADLSlopeWindow       int
+	ADLSlopeMinRatio     float64
 }
 
 func DefaultSpikeRule() SpikeRule {
