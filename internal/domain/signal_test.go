@@ -17,7 +17,7 @@ func TestSignalInterpretation(t *testing.T) {
 		input    Signal
 		expected string
 	}{
-		{Signal{ADLSlope5: 1.5}, "akumulasi"},
+		{Signal{ADLSlope5: 1.5}, "netral"},
 		{Signal{ADLSlope5: -0.1}, "distribusi"},
 		{Signal{ADLSlope5: 0}, "netral"},
 		{Signal{ADLSlope5: 99, IsFiltered: true}, "terfilter (noise harga)"},
@@ -27,6 +27,8 @@ func TestSignalInterpretation(t *testing.T) {
 		{Signal{CMF: 0.10, PctChange: 3.0, ADLSlope5: 1}, "akumulasi lemah markup"},
 		{Signal{CMF: 0.01, PctChange: 0.5, ADLSlope5: -1}, "distribusi"},
 		{Signal{CMF: 0.01, PctChange: 0.5, ADLSlope5: 1}, "netral"},
+		{Signal{CMF: 0, PctChange: 0.5, ADLSlope5: 1}, "netral"},
+		{Signal{CMF: 0, PctChange: 0.5, ADLSlope5: -1}, "distribusi"},
 	}
 
 	for _, tc := range cases {

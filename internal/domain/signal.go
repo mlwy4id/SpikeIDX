@@ -42,15 +42,12 @@ func (s Signal) Interpretation() string {
 		}
 		return "netral"
 	default:
-		// Baris lama tanpa CMF (nol): pertahankan semantik ADL lama.
-		switch {
-		case s.ADLSlope5 > 0:
-			return "akumulasi"
-		case s.ADLSlope5 < 0:
+		// CMF nol (flat-bar / <20 bar / sumVol 0): samakan dengan CMF kecil,
+		// fallback ke ADL agar tidak ada diskontinuitas label.
+		if s.ADLSlope5 < 0 {
 			return "distribusi"
-		default:
-			return "netral"
 		}
+		return "netral"
 	}
 }
 
