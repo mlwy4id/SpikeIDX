@@ -7,6 +7,7 @@ Repo: Go monolith modular (binary `api` + `worker`-minimal jadi; worker-penuh/cr
 Deteksi **volume spike saham Indonesia (IDX/BEI), End-of-Day**. Aturan spike v1:
 `volume > 2x SMA20` AND `z-score > 2.0`, filter noise `|change| > 2%` (flag `is_filtered`, tetap disimpan).
 Indikator konfirmasi: Chaikin A/D Line (murni dari OHLCV, tanpa fetch tambahan).
+Label: rasio `slope/(avg20*window)`, window default 20, `>+0.10 akumulasi`, `<-0.10 distribusi`, sisanya `netral`.
 Alert: 1 pesan Telegram/hari via worker cron `30 16 * * 1-5 TZ=Asia/Jakarta`.
 
 Dokumen sumber kebenaran:
@@ -70,7 +71,7 @@ Smoke: `GET /health` → `{"status":"ok"}`; `POST /api/v1/watchlist {"code":"X"}
 - `go:embed` **tidak boleh** path `..` (FS jadi kosong diam-diam) — migrasi harus di dalam `internal/infra/postgres/migrations/`.
 - `docker compose` plugin tidak tersedia di semua mesin — `docker-compose.yml` hanya untuk `api`+`worker` (tanpa service db).
 - `pkill -f <nama>` pernah menggantung shell session — bunuh proses via pid file (`kill $(cat /tmp/api.pid)`).
-- Nama fungsi ADL yang benar: `ADL` / `ADLSlope5` (bukan `AccumulationDistributionLine`).
+- Nama fungsi ADL yang benar: `ADL` / `ADLSlope(adl, window)` / `ADLSlope5` wrapper (bukan `AccumulationDistributionLine`). Kolom `adl_slope5` dipakai ulang untuk window rule (legacy name, tanpa migrasi).
 - `GET /watchlist` dan `/signals` harus return `[]`, bukan `null` (guard `nil` di handler/repo — berlaku lagi saat delivery dibangun; `SearchAndCache`/`DailyIngest` sudah jamin non-nil).
 - `STRICT_DB` / fallback-memory di compose/`.env.example` lama adalah no-op (tidak dibaca `config`) — sudah dihapus. Jangan perkenalkan lagi.
 - `docs/` kini terversioning (baris `/docs` di `.gitignore` dihapus) — `AGENTS.md` + report wajib ikut commit.

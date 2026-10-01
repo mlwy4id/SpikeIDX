@@ -1,11 +1,11 @@
 package domain
 
 type SpikeRule struct {
-	MultipleMin  float64
-	ZScoreMin    float64
-	CMFWeakMin   float64
-	CMFStrongMin float64
-	PctChangeMin float64
+	MultipleMin          float64
+	ZScoreMin            float64
+	CMFWeakMin           float64
+	CMFStrongMin         float64
+	PctChangeMin         float64
 	IsPriceFilterEnabled bool
 	ADLSlopeWindow       int
 	ADLSlopeMinRatio     float64
@@ -13,8 +13,9 @@ type SpikeRule struct {
 
 func DefaultSpikeRule() SpikeRule {
 	return SpikeRule{
-		MultipleMin: 1.5, ZScoreMin: 2.0,
+		MultipleMin: 2.0, ZScoreMin: 2.0,
 		CMFWeakMin: 0.05, CMFStrongMin: 0.25,
-		PctChangeMin: 2.0, IsPriceFilterEnabled: false,
+		PctChangeMin: 2.0, IsPriceFilterEnabled: true,
+		ADLSlopeWindow: 20, ADLSlopeMinRatio: 0.10,
 	}
 }

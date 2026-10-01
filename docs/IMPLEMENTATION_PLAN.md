@@ -1,6 +1,6 @@
 # Implementation Plan — SpikeIDX (trackable)
 
-Tanggal: 2026-09-27 | Status: v1 API + Yahoo E2E berjalan lokal; seed + probe 20–100 + retry/backoff done; E2E cloud + worker menunggu.
+Tanggal: 2026-10-02 | Status: v1 API + Yahoo E2E berjalan lokal; seed + probe 20–100 + retry/backoff done; label akumulasi/distribusi rasio-CMF done (§8); E2E cloud + worker menunggu.
 
 Legenda status: `done` = selesai + gate hijau | `pending` = belum dikerjakan | `blocked` = butuh input/kredensial user.
 
@@ -73,7 +73,7 @@ Legenda status: `done` = selesai + gate hijau | `pending` = belum dikerjakan | `
 |---|---|---|
 | D-01 | `docs/AGENTS.md` §3/§5 | done (perlu update kecil: `ADL` baru, lihat §6) |
 | D-02 | `README.md` | done (bersihkan bagian basi saat delivery jadi) |
-| D-03 | `docs/IMPLEMENTATION_REPORT.md` §12l | done |
+| D-03 | `docs/IMPLEMENTATION_REPORT.md` §12p | done |
 
 ## 3. Scope v2 (ditunda) — `cmd/worker`
 
@@ -168,4 +168,17 @@ Legenda status: `done` = selesai + gate hijau | `pending` = belum dikerjakan | `
 | 2 | Seed `stocks_master` + uji 20–100 simbol + retry/backoff + ukur 429 | done 2026-09-27 (`SeedStocks` idempoten + `scripts/seed_stocks.go`; probe `scripts/fetch_probe/`; retry di `infra/yahoo`) |
 | 3 | `cmd/worker` v2 + IDX `GetStockSummary`/`GetBrokerSummary` + kalender penuh + Telegram E2E | pending |
 | 4 | `robfig/cron` bila worker long-running | pending |
-| 5 | Sinkron `README.md` + `Dockerfile` + `AGENTS.md` gotcha ADL | done 2026-09-27 |
+| 5 | Sinkron `README.md` + `Dockerfile` + `AGENTS.md` gotcha ADL | done 2026-09-27, sinkron ulang label rasio 2026-10-02 (§8) |
+| 6 | Tuning threshold label via review sinyal (`?include_filtered=true`) | pending (default standar CMF: window 20, ±0.10) |
+
+## 8. Label akumulasi/distribusi rasio-CMF 2026-10-02 (done, gate hijau)
+
+Latar: `Interpretation()` lama (`ADLSlope5 >0 → akumulasi`) false-positive untuk 1 bar jumbo. Spec Wyckoff Range+Spring 2026-09-28 dinilai terlalu kompleks → ditolak (file spec sudah tidak ada di disk).
+
+| ID | Keputusan | Status |
+|---|---|---|
+| F-01 | Label = rasio `slope/(avg20*window)` (CMF-style, `[-1,1]`); `>+0.10 akumulasi`, `<-0.10 distribusi`, sisanya `netral` (noise `±0.05` ikut netral); `avg<=0` atau histori `<window+1` → netral; `IsFiltered` prioritas | done (`domain/signal.go`) |
+| F-02 | `SpikeRule` default: L0 tetap (`MultipleMin 2.0`, `ZScoreMin 2.0`, `PctChangeMin 2.0`, filter on) + `ADLSlopeWindow 20` + `ADLSlopeMinRatio 0.10` | done (`domain/rule.go`) |
+| F-03 | `ADLSlope(adl, window)` generik; `ADLSlope5` wrapper; `DetectOne` pakai `rule.ADLSlopeWindow` | done (`usecase/adl.go`, `detect.go`) |
+| F-04 | Interlude rebase tercatat: tier `kuat/lemah + regime` + `MultipleMin 1.5` + filter-off sempat mendarat (`ff6d3d5–3f73a20`), dikembalikan ke F-01–F-03 + test diselaraskan | done |
+| F-05 | Dipertahankan non-destruktif: `CMF()` + kolom `cmf` (migrasi 004) + field API + `HasData`/status non-spike worker | done (label tidak baca `CMF`; deskripsi `openapi.yaml` diluruskan) |

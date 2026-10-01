@@ -26,35 +26,32 @@ func (s Signal) InterpretationWithRule(rule SpikeRule, avg float64) string {
 		return "terfilter (noise harga)"
 	}
 
-	regime := "markup"
-	if abs(s.PctChange) < rule.PctChangeMin {
-		regime = "sideways"
+	window := rule.ADLSlopeWindow
+	if window <= 0 {
+		window = DefaultSpikeRule().ADLSlopeWindow
 	}
 
-	switch {
-	case s.CMF >= rule.CMFStrongMin:
-		return "akumulasi kuat " + regime
-	case s.CMF >= rule.CMFWeakMin:
-		return "akumulasi lemah " + regime
-	case s.CMF != 0:
-		// CMF terisi tapi di bawah ambang akumulasi: fallback ke ADL.
-		if s.ADLSlope5 < 0 {
-			return "distribusi"
-		}
+	minRatio := rule.ADLSlopeMinRatio
+	if minRatio < 0 {
+		minRatio = 0
+	}
+
+	if avg <= 0 || window <= 0 {
 		return "netral"
+	}
+
+	denom := avg * float64(window)
+	if denom == 0 {
+		return "netral"
+	}
+
+	// Rasio CMF-style: slope/(avg*window) dalam [-1,1].
+	switch ratio := s.ADLSlope5 / denom; {
+	case ratio > minRatio:
+		return "akumulasi"
+	case ratio < -minRatio:
+		return "distribusi"
 	default:
-		// CMF nol (flat-bar / <20 bar / sumVol 0): samakan dengan CMF kecil,
-		// fallback ke ADL agar tidak ada diskontinuitas label.
-		if s.ADLSlope5 < 0 {
-			return "distribusi"
-		}
 		return "netral"
 	}
-}
-
-func abs(v float64) float64 {
-	if v < 0 {
-		return -v
-	}
-	return v
 }

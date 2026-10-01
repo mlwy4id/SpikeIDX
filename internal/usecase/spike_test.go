@@ -44,8 +44,8 @@ func TestIsSpike(t *testing.T) {
 		t.Fatal("expected ok")
 	}
 
-	if multiple < 1.5 {
-		t.Fatalf("expected multiple>1.5, got %f (avg %f)", multiple, avg)
+	if multiple < 2.0 {
+		t.Fatalf("expected multiple>2, got %f (avg %f)", multiple, avg)
 	}
 
 	spike, isFiltered := IsSpike(multiple, zScore, pctChange, rule)
@@ -58,16 +58,15 @@ func TestIsSpike(t *testing.T) {
 	_, multiple, zScore, pctChange, _ = Stats(hist, rule)
 	spike, isFiltered = IsSpike(multiple, zScore, pctChange, rule)
 
-	if !spike || isFiltered {
-		t.Fatalf("expected actionable sideways spike (klasifikasi, bukan filter), got spike=%v filtered=%v", spike, isFiltered)
+	if !spike || !isFiltered {
+		t.Fatalf("expected filtered spike, got spike=%v filtered=%v", spike, isFiltered)
 	}
 	_ = avg
 }
 
 func TestIsSpikeFilterDisabled(t *testing.T) {
 	rule := domain.DefaultSpikeRule()
-	// IsPriceFilterEnabled deprecated: IsSpike mengabaikannya, pct hanya klasifikasi.
-	rule.IsPriceFilterEnabled = true
+	rule.IsPriceFilterEnabled = false
 	spike, isFiltered := IsSpike(3.0, 2.5, 0.1, rule)
 
 	if !spike || isFiltered {

@@ -249,6 +249,15 @@ Dokumen acuan: `~/Documents/obsidian-vault/4 - Projects/SpikeIDX/architecture.md
 - Review pasca-batch (No, with fixes → semua diperbaiki): Critical `.gitignore: worker` membayangi `cmd/worker/` (tak terlacak git!) → jadi `/worker`; Important blast-radius holidays-nil → worker log batasan saat startup; Minor: guard baris-duplikat di `DetectGap`, `limit=0` → 400 (bukan unlimited), digest via stdout (`fmt`), tail-staleness dicatat backlog.
 - Gate: `test` ✅ `vet` ✅ `build` ✅ `gofmt` ✅ `lint` 0 issues ✅.
 
+## 12p. Update 2026-10-02 — Label akumulasi/distribusi rasio-CMF + penyelarasan pasca-rebase
+
+- Masalah: `Interpretation()` lama (`ADLSlope5 >0 → akumulasi`) melabel 1 bar jumbo sebagai akumulasi. Spec Wyckoff Range+Spring 2026-09-28 ditolak sebagai terlalu kompleks.
+- Baru (desain disetujui user): `SpikeRule` tambah `ADLSlopeWindow=20` + `ADLSlopeMinRatio=0.10`; label = rasio `slope/(avg20*window)` — `>+0.10 akumulasi`, `<-0.10 distribusi` (simetris), sisanya `netral`; `avg<=0`/histori pendek → netral; `IsFiltered` prioritas. L0 tidak berubah (`2x + z>2 + |change|>2%`).
+- `usecase/adl.go`: `ADLSlope(adl, window)` generik (`ADLSlope5` jadi wrapper); `DetectOne` pakai window dari rule. Contoh: slope Rp40jt, avg Rp10jt, window 20 → rasio 0.20 → akumulasi; slope Rp5jt → 0.025 → netral.
+- Interlude rebase (ringkas): tier `akumulasi kuat/lemah + regime` + `MultipleMin 1.5` + filter-off sempat mendarat, lalu dikembalikan ke desain rasio + test diselaraskan (boundary `2.0`, sideways → terfilter, digest `ADL akumulasi/distribusi`).
+- Dipertahankan non-destruktif: `CMF()` + kolom `cmf` (migrasi 004) + field API + `HasData`/status non-spike worker; deskripsi `openapi.yaml` diluruskan ke desain rasio.
+- Gate: `test` ✅ `vet` ✅ `build` ✅ `gofmt` ✅ `lint` 0 issues ✅.
+
 ## 12. Usulan next step (pilih urutan)
 
 1. E2E cloud via contract test (`DATABASE_URL` user) + smoke Yahoo nyata (search → watchlist → backfill).

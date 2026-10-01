@@ -52,10 +52,10 @@ func TestCMFFlatBarGuard(t *testing.T) {
 	}
 }
 
-func TestSidewaysSpikeIsActionable(t *testing.T) {
+func TestSidewaysSpikeIsFiltered(t *testing.T) {
 	rule := domain.DefaultSpikeRule()
 	spike, isFiltered := IsSpike(2.5, 2.5, 0.5, rule)
-	if !spike || isFiltered {
-		t.Fatalf("sideways volume spike must be actionable (klasifikasi, bukan filter): got spike=%v filtered=%v", spike, isFiltered)
+	if !spike || !isFiltered {
+		t.Fatalf("sideways volume spike must be stored as filtered: got spike=%v filtered=%v", spike, isFiltered)
 	}
 }

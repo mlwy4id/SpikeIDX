@@ -8,7 +8,7 @@ Go clean-lite + Postgres (cloud) + Yahoo `.JK` primary.
 - `internal/http` — Gin handlers tipis di atas usecase (validasi + map error: 400/404/409/502)
 - `cmd/worker` — v2 (ditunda): cron EOD fetch → upsert → detect spike + ADL → Telegram
 - `internal/domain` — entities + interfaces (`StockRepository` wajib sebelum tulis watchlist/ohlcv)
-- `internal/usecase` — spike rule (2x SMA20 + z>2 + filter |change|>2%), Chaikin A/D Line
+- `internal/usecase` — spike rule (2x SMA20 + z>2 + filter |change|>2%), Chaikin A/D Line + label rasio akumulasi/distribusi (window 20, ±0.10)
 - `internal/infra/yahoo` — Yahoo chart + search (browser UA, 1 req/s)
 - `internal/infra/idx` — stub fallback IDX (v2: broker summary)
 - `internal/infra/postgres` — repo pgx + auto-migrate saat startup (strict, tanpa fallback)
@@ -51,7 +51,7 @@ Docs: Swagger UI di `GET /swagger/index.html` (alias `/swagger`, `/docs`), spec 
 
 ## Next
 
-Rencana aktif: `docs/superpowers/plans/2026-09-27-yahoo-hardening-e2e.md`.
+Rencana aktif: `docs/IMPLEMENTATION_PLAN.md` (§8: label akumulasi/distribusi rasio-CMF).
 
 1. E2E cloud via contract test (`DATABASE_URL` user) + smoke Yahoo nyata (search → watchlist → backfill → `GET /api/v1/ohlcv/BBCA` + `GET /api/v1/signals`).
 2. Seed `stocks_master` IDX (idempoten) + uji fetch Yahoo 20–100 simbol (ukur 429/latency).

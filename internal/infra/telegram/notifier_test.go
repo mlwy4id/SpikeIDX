@@ -19,7 +19,7 @@ func TestDigestFormat(t *testing.T) {
 		{Code: "TLKM", Volume: 80_500_000, Multiple: 2.5, PctChange: -1.2, Avg20: 10_000_000, ADLSlope5: -40_000_000},
 	}
 	got := Digest("17 Sep", signals)
-	for _, want := range []string{"BBCA 45jt (3.1x avg20) +2.4%", "TLKM 80.5jt (2.5x avg20) -1.2%", "ADL netral", "ADL distribusi"} {
+	for _, want := range []string{"BBCA 45jt (3.1x avg20) +2.4%", "TLKM 80.5jt (2.5x avg20) -1.2%", "ADL akumulasi", "ADL distribusi"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q in %q", want, got)
 		}
