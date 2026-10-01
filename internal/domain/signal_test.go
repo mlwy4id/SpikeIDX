@@ -13,7 +13,6 @@ func TestSignalIsActionable(t *testing.T) {
 }
 
 func TestSignalInterpretation(t *testing.T) {
-	avg := 10_000_000.0
 	cases := []struct {
 		input    Signal
 		expected string

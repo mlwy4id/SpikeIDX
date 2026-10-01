@@ -26,7 +26,6 @@ func (s Signal) InterpretationWithRule(rule SpikeRule, avg float64) string {
 		return "terfilter (noise harga)"
 	}
 
-	rule := DefaultSpikeRule()
 	regime := "markup"
 	if abs(s.PctChange) < rule.PctChangeMin {
 		regime = "sideways"
