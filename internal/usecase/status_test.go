@@ -7,8 +7,8 @@ import (
 	"spikeidx/internal/domain"
 )
 
-// RED: non-spike harus tetap mengembalikan Signal status (accum/dist)
-// agar worker bisa print keadaan terkini, bukan Signal kosong.
+// Non-spike must still return a status Signal (accum/dist)
+// so the worker can print the current state instead of an empty Signal.
 func TestDetectOneNoSpikeReturnsStatus(t *testing.T) {
 	vols := make([]int64, 20)
 	for i := range vols {
@@ -30,8 +30,8 @@ func TestDetectOneNoSpikeReturnsStatus(t *testing.T) {
 	}
 }
 
-// Non-spike dari DailyIngest harus membawa status (NoSpike+Signal)
-// agar worker bisa print accum/dist, dan tidak boleh di-Upsert sebagai sinyal.
+// Non-spike from DailyIngest must carry status (NoSpike+Signal)
+// so the worker can print accum/dist, and must not Upsert it as a signal.
 func TestDailyIngestNoSpikeHasStatus(t *testing.T) {
 	ctx := context.Background()
 	stocks := &fakeStocks{}

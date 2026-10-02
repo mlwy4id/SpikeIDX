@@ -7,11 +7,7 @@ func ADL(hist []domain.OHLCV) []float64 {
 	var cur float64
 
 	for i, h := range hist {
-		var mfm float64
-		if h.High != h.Low {
-			mfm = ((h.Close - h.Low) - (h.High - h.Close)) / (h.High - h.Low)
-		}
-		cur += mfm * float64(h.Volume)
+		cur += moneyFlowMultiplier(h) * float64(h.Volume)
 		out[i] = cur
 	}
 

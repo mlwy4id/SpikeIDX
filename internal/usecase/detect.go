@@ -42,10 +42,10 @@ func DetectOne(code domain.Code, hist []domain.OHLCV, rule domain.SpikeRule) (si
 type IngestStatus int
 
 const (
-	// StatusSkipped adalah nilai nol: gagal sebelum klasifikasi (gap, error,
-	// histori kurang). Fail-closed: tidak ada sinyal, tidak ada persist.
+	// StatusSkipped is the zero value: failed before classification (gap, error,
+	// short history). Fail-closed: no signal, no persist.
 	StatusSkipped IngestStatus = iota
-	// StatusNoSpike: histori ada, tidak ada spike. Memori saja, tanpa persist.
+	// StatusNoSpike: history exists, no spike. Memory only, never persisted.
 	StatusNoSpike
 	// StatusSpikeFiltered: spike tersimpan sebagai noise (include_filtered).
 	StatusSpikeFiltered
@@ -70,11 +70,11 @@ type SymbolResult struct {
 	Code   domain.Code
 	Status IngestStatus
 	Signal domain.Signal
-	// Reason hanya bermakna untuk StatusSkipped.
+	// Reason is only meaningful for StatusSkipped.
 	Reason string
 }
 
-// ShouldPersist adalah satu-satunya pintu keputusan tulis sinyal.
+// ShouldPersist is the single gate for signal writes.
 func (r SymbolResult) ShouldPersist() bool {
 	return r.Status == StatusSpikeActionable || r.Status == StatusSpikeFiltered
 }
