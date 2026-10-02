@@ -126,15 +126,15 @@ func TestDailyIngest(t *testing.T) {
 		t.Fatalf("got %+v", res)
 	}
 
-	if !res[0].HasSpike || res[0].Signal.Code != "BBCA" {
+	if res[0].Status != StatusSpikeActionable || res[0].Signal.Code != "BBCA" {
 		t.Fatalf("BBCA: %+v", res[0])
 	}
 
-	if res[1].HasSpike || res[1].Reason != "no spike" {
+	if res[1].Status != StatusNoSpike {
 		t.Fatalf("TLKM: %+v", res[1])
 	}
 
-	if res[2].HasSpike || res[2].Reason == "" {
+	if res[2].Status != StatusSkipped || res[2].Reason == "" {
 		t.Fatalf("GOTO: %+v", res[2])
 	}
 

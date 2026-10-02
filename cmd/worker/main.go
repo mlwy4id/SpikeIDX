@@ -58,23 +58,23 @@ func main() {
 		}
 
 		for _, res := range usecase.DailyIngest(ctx, provider, ingest, []domain.Code{code}, rule, nil) {
-			if !res.HasSpike {
-				if res.HasData {
-					log.Printf("worker: %s NO-SPIKE %.1fx z=%.2f %+.1f%% CMF=%.3f ADL=%s",
-						res.Code, res.Signal.Multiple, res.Signal.ZScore,
-						res.Signal.PctChange, res.Signal.CMF, res.Signal.Interpretation())
-				} else {
-					log.Printf("worker: %s skip (%s)", res.Code, res.Reason)
-				}
+			switch res.Status {
+			case usecase.StatusNoSpike:
+				log.Printf("worker: %s NO-SPIKE %.1fx z=%.2f %+.1f%% CMF=%.3f ADL=%s",
+					res.Code, res.Signal.Multiple, res.Signal.ZScore,
+					res.Signal.PctChange, res.Signal.CMF, res.Signal.Interpretation())
 				continue
-			}
+			case usecase.StatusSpikeActionable, usecase.StatusSpikeFiltered:
+				log.Printf("worker: %s SPIKE %.1fx z=%.2f %+.1f%% CMF=%.3f ADL=%s (filtered=%v)",
+					res.Code, res.Signal.Multiple, res.Signal.ZScore,
+					res.Signal.PctChange, res.Signal.CMF, res.Signal.Interpretation(), res.Signal.IsFiltered)
 
-			log.Printf("worker: %s SPIKE %.1fx z=%.2f %+.1f%% CMF=%.3f ADL=%s (filtered=%v)",
-				res.Code, res.Signal.Multiple, res.Signal.ZScore,
-				res.Signal.PctChange, res.Signal.CMF, res.Signal.Interpretation(), res.Signal.IsFiltered)
-
-			if res.Signal.IsActionable() {
-				actionable = append(actionable, res.Signal)
+				if res.Signal.IsActionable() {
+					actionable = append(actionable, res.Signal)
+				}
+			default:
+				log.Printf("worker: %s skip (%s)", res.Code, res.Reason)
+				continue
 			}
 		}
 	}

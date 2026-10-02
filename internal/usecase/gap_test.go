@@ -99,7 +99,7 @@ func TestDailyIngestGap(t *testing.T) {
 		t.Fatalf("got %+v", res)
 	}
 
-	if res[0].HasSpike || res[0].Reason != "gap:2026-09-22 missing" {
+	if res[0].Status != StatusSkipped || res[0].Reason != "gap:2026-09-22 missing" {
 		t.Fatalf("got %+v", res[0])
 	}
 

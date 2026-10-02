@@ -30,7 +30,7 @@ func TestDetectOneNoSpikeReturnsStatus(t *testing.T) {
 	}
 }
 
-// Non-spike dari DailyIngest harus membawa status (HasData+Signal)
+// Non-spike dari DailyIngest harus membawa status (NoSpike+Signal)
 // agar worker bisa print accum/dist, dan tidak boleh di-Upsert sebagai sinyal.
 func TestDailyIngestNoSpikeHasStatus(t *testing.T) {
 	ctx := context.Background()
@@ -49,16 +49,31 @@ func TestDailyIngestNoSpikeHasStatus(t *testing.T) {
 		t.Fatalf("got %+v", res)
 	}
 	r := res[0]
-	if r.HasSpike {
-		t.Fatalf("expected no spike, got %+v", r)
-	}
-	if !r.HasData {
-		t.Fatalf("expected HasData for non-spike with history, got %+v", r)
+	if r.Status != StatusNoSpike {
+		t.Fatalf("expected NoSpike, got %+v", r)
 	}
 	if r.Signal.Volume == 0 || r.Signal.Interpretation() == "" {
 		t.Fatalf("expected status signal, got %+v", r)
 	}
 	if len(signals.data) != 0 {
 		t.Fatalf("non-spike must not upsert signals, got %+v", signals.data)
+	}
+}
+
+func TestShouldPersist(t *testing.T) {
+	cases := []struct {
+		status IngestStatus
+		want   bool
+	}{
+		{StatusSpikeActionable, true},
+		{StatusSpikeFiltered, true},
+		{StatusNoSpike, false},
+		{StatusSkipped, false},
+	}
+
+	for _, tc := range cases {
+		if got := (SymbolResult{Status: tc.status}).ShouldPersist(); got != tc.want {
+			t.Errorf("ShouldPersist(%v) = %v, want %v", tc.status, got, tc.want)
+		}
 	}
 }

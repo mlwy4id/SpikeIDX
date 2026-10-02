@@ -39,12 +39,44 @@ func DetectOne(code domain.Code, hist []domain.OHLCV, rule domain.SpikeRule) (si
 	return sig, true, isFiltered, nil
 }
 
+type IngestStatus int
+
+const (
+	// StatusSkipped adalah nilai nol: gagal sebelum klasifikasi (gap, error,
+	// histori kurang). Fail-closed: tidak ada sinyal, tidak ada persist.
+	StatusSkipped IngestStatus = iota
+	// StatusNoSpike: histori ada, tidak ada spike. Memori saja, tanpa persist.
+	StatusNoSpike
+	// StatusSpikeFiltered: spike tersimpan sebagai noise (include_filtered).
+	StatusSpikeFiltered
+	// StatusSpikeActionable: spike layak digest.
+	StatusSpikeActionable
+)
+
+func (s IngestStatus) String() string {
+	switch s {
+	case StatusNoSpike:
+		return "no-spike"
+	case StatusSpikeFiltered:
+		return "spike-filtered"
+	case StatusSpikeActionable:
+		return "spike"
+	default:
+		return "skipped"
+	}
+}
+
 type SymbolResult struct {
-	Code     domain.Code
-	HasSpike bool
-	Signal   domain.Signal
-	HasData  bool
-	Reason   string
+	Code   domain.Code
+	Status IngestStatus
+	Signal domain.Signal
+	// Reason hanya bermakna untuk StatusSkipped.
+	Reason string
+}
+
+// ShouldPersist adalah satu-satunya pintu keputusan tulis sinyal.
+func (r SymbolResult) ShouldPersist() bool {
+	return r.Status == StatusSpikeActionable || r.Status == StatusSpikeFiltered
 }
 
 type IngestRepos struct {
@@ -94,22 +126,25 @@ func DailyIngest(ctx context.Context, provider domain.MarketDataProvider, repos 
 		}
 
 		if !spike {
+			res.Status = StatusNoSpike
 			res.Signal = sig
-			res.HasData = true
-			res.Reason = "no spike"
 			out = append(out, res)
 			continue
 		}
 
+		res.Signal = sig
+		res.Status = StatusSpikeActionable
+		if sig.IsFiltered {
+			res.Status = StatusSpikeFiltered
+		}
+
 		if err := repos.Signals.Upsert(ctx, sig); err != nil {
+			res.Status = StatusSkipped
 			res.Reason = err.Error()
 			out = append(out, res)
 			continue
 		}
 
-		res.HasSpike = true
-		res.HasData = true
-		res.Signal = sig
 		out = append(out, res)
 	}
 
