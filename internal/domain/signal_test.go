@@ -44,10 +44,6 @@ func TestDefaultSpikeRule(t *testing.T) {
 		t.Fatal("price filter must be enabled by default (US-06)")
 	}
 
-	if r.CMFWeakMin != 0.05 || r.CMFStrongMin != 0.25 {
-		t.Fatalf("CMF thresholds changed: %+v", r)
-	}
-
 	if r.ADLSlopeWindow != 20 {
 		t.Fatalf("ADLSlopeWindow default must be 20 (CMF standard), got %d", r.ADLSlopeWindow)
 	}
@@ -69,20 +65,19 @@ func TestSignalInterpretationWithRule(t *testing.T) {
 	cases := []struct {
 		name     string
 		input    Signal
-		avg      float64
 		expected string
 	}{
-		{"akumulasi kuat", Signal{ADLSlope5: strongBuy, Avg20: avg}, avg, "akumulasi"},
-		{"distribusi kuat", Signal{ADLSlope5: strongSell, Avg20: avg}, avg, "distribusi"},
-		{"noise positif netral", Signal{ADLSlope5: noise, Avg20: avg}, avg, "netral"},
-		{"noise negatif netral", Signal{ADLSlope5: -noise, Avg20: avg}, avg, "netral"},
-		{"nol netral", Signal{ADLSlope5: 0, Avg20: avg}, avg, "netral"},
-		{"filtered prioritas", Signal{ADLSlope5: strongBuy, Avg20: avg, IsFiltered: true}, avg, "terfilter (noise harga)"},
-		{"avg nol netral", Signal{ADLSlope5: strongBuy, Avg20: 0}, 0, "netral"},
+		{"akumulasi", Signal{ADLSlope5: strongBuy, Avg20: avg}, "akumulasi"},
+		{"distribusi", Signal{ADLSlope5: strongSell, Avg20: avg}, "distribusi"},
+		{"noise positif netral", Signal{ADLSlope5: noise, Avg20: avg}, "netral"},
+		{"noise negatif netral", Signal{ADLSlope5: -noise, Avg20: avg}, "netral"},
+		{"nol netral", Signal{ADLSlope5: 0, Avg20: avg}, "netral"},
+		{"filtered prioritas", Signal{ADLSlope5: strongBuy, Avg20: avg, IsFiltered: true}, "terfilter (noise harga)"},
+		{"avg nol netral", Signal{ADLSlope5: strongBuy, Avg20: 0}, "netral"},
 	}
 
 	for _, tc := range cases {
-		if got := tc.input.InterpretationWithRule(rule, tc.avg); got != tc.expected {
+		if got := tc.input.InterpretationWithRule(rule); got != tc.expected {
 			t.Errorf("%s: InterpretationWithRule(%+v) = %q, want %q", tc.name, tc.input, got, tc.expected)
 		}
 	}

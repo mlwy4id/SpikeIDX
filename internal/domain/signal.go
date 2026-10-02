@@ -19,9 +19,9 @@ type Signal struct {
 
 func (s Signal) IsActionable() bool { return !s.IsFiltered }
 
-func (s Signal) Interpretation() string { return s.InterpretationWithRule(DefaultSpikeRule(), s.Avg20) }
+func (s Signal) Interpretation() string { return s.InterpretationWithRule(DefaultSpikeRule()) }
 
-func (s Signal) InterpretationWithRule(rule SpikeRule, avg float64) string {
+func (s Signal) InterpretationWithRule(rule SpikeRule) string {
 	if s.IsFiltered {
 		return "terfilter (noise harga)"
 	}
@@ -36,11 +36,11 @@ func (s Signal) InterpretationWithRule(rule SpikeRule, avg float64) string {
 		minRatio = 0
 	}
 
-	if avg <= 0 || window <= 0 {
+	if avg := s.Avg20; avg <= 0 || window <= 0 {
 		return "netral"
 	}
 
-	denom := avg * float64(window)
+	denom := s.Avg20 * float64(window)
 	if denom == 0 {
 		return "netral"
 	}
