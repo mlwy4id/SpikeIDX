@@ -32,3 +32,10 @@ type WatchlistRepository interface {
 	Remove(ctx context.Context, user UserID, code Code) error
 	Count(ctx context.Context, user UserID) (int, error)
 }
+
+// HolidayProvider supplies exchange holidays per year. A nil map means
+// weekend-only (no public-holiday data). Fetch failures must surface as
+// errors so callers can fall back explicitly.
+type HolidayProvider interface {
+	Holidays(ctx context.Context, year int) (map[TradingDate]bool, error)
+}
