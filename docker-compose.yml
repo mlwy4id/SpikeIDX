@@ -11,3 +11,5 @@ services:
     build: .
     command: ["./worker"]
     env_file: [.env]
+    # Single-run EOD; schedule externally, e.g. cron:
+    # 30 16 * * 1-5 TZ=Asia/Jakarta /path/to/worker
