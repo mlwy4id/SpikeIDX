@@ -1,7 +1,27 @@
+# Secrets
 .env
+
+# Go build output
+/api
 /worker
 /out/
 bin/
 *.test
+coverage.out
+
+# Python (research/)
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+research/data/
+research/outputs/
+
+# Editor
 .idea/
 .vscode/
+
+# Docs lokal saja (tidak di-versioning)
+docs/*

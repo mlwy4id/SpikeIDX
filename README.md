@@ -1,64 +1,79 @@
-# SpikeIDX — deteksi volume spike saham Indonesia (EOD)
+# SpikeIDX — deteksi dan riset volume spike saham Indonesia (EOD)
 
-Go clean-lite + Postgres (cloud) + Yahoo `.JK` primary.
+Pipeline End-of-Day untuk saham IDX: ambil OHLCV dari Yahoo (`.JK`), simpan ke Postgres,
+deteksi volume spike dan aliran dana (CMF/ADL), lalu kirim digest Telegram. Lapisan riset
+Python menguji apakah sinyal tersebut punya daya prediksi.
+
+| Bagian | Teknologi | Peran |
+|---|---|---|
+| Produksi | Go 1.25, pgx, Gin | API, worker EOD, satu-satunya penulis DB |
+| Riset | Python ≥3.12 (`uv`), pandas, scipy, JupyterLab | Event study/backtest, read-only ke DB |
+| DB | Postgres cloud (Supabase/Neon) | Dipakai bersama |
 
 ## Layout
 
-- `cmd/api` — REST via Gin: search, watchlist, signals
-- `internal/http` — Gin handlers tipis di atas usecase (validasi + map error: 400/404/409/502)
-- `cmd/worker` — v2 (ditunda): cron EOD fetch → upsert → detect spike + ADL → Telegram
-- `internal/domain` — entities + interfaces (`StockRepository` wajib sebelum tulis watchlist/ohlcv)
-- `internal/usecase` — spike rule (2x SMA20 + z>2 + filter |change|>2%), Chaikin A/D Line + label rasio akumulasi/distribusi (window 20, ±0.10)
-- `internal/infra/yahoo` — Yahoo chart + search (browser UA, 1 req/s)
-- `internal/infra/idx` — stub fallback IDX (v2: broker summary)
-- `internal/infra/postgres` — repo pgx + auto-migrate saat startup (strict, tanpa fallback)
-- `internal/infra/postgres/migrations` — DDL kanonis (manual: `psql -f internal/infra/postgres/migrations/001_master.sql`)
-
-## Run lokal
-
-```bash
-go test ./...
-golangci-lint run ./...   # lint bersih (config: .golangci.yml)
-cp .env.example .env   # isi DATABASE_URL cloud
-go run ./cmd/api       # :8080, gagal keras tanpa DB (WireStrict)
+```
+cmd/api                REST (Gin): search, watchlist, signals, ohlcv, Swagger
+cmd/worker             single-run EOD: ingest → deteksi → digest Telegram
+internal/domain        entity + interface repo (stdlib only)
+internal/usecase       logika murni: spike, ADL, CMF, gap, kalender, ingest
+internal/http          handler tipis + openapi.yaml
+internal/infra         yahoo (retry 429/5xx), idx (kalender Nager; fallback stub),
+                       postgres (pgx + auto-migrate), telegram
+scripts/               seed_stocks, fetch_probe
+research/              paket Python spikeidx_research, tests, notebooks
 ```
 
-Smoke: `GET /health` → `{"status":"ok"}`; `POST /api/v1/watchlist {"code":"X"}` tanpa search → 404.
+## Rule sinyal
 
-Alur wajib search dulu: `GET /search?q=BBCA` (auto-cache master) → `POST /watchlist {"code":"BBCA"}` → backfill jalan di background.
+- Spike: `volume / avg20 > 2.0` **dan** `z-score > 2.0`.
+- Terfilter (noise): spike dengan `|perubahan harga| < 2%`; disimpan, tidak masuk digest.
+- Label: `akumulasi` / `distribusi` / `netral` dari aliran dana 20 hari.
 
-## Postgres cloud (Supabase / Neon)
+## Run lokal (Go)
 
-1. Buat project Postgres cloud (region terdekat, mis. Singapore).
-2. Ambil connection string **Session mode port 5432** (bukan Transaction pooler 6543, agar `CREATE EXTENSION pg_trgm` + migrasi jalan).
-3. Isi `.env` dari `.env.example` (`DATABASE_URL=...?sslmode=require`).
-4. Jalankan — migrasi (`001-003`) diterapkan otomatis oleh app saat startup:
 ```bash
-cp .env.example .env   # isi DATABASE_URL
-go run ./cmd/api       # log: backend=postgres
+cp .env.example .env    # isi DATABASE_URL (Session mode port 5432, ?sslmode=require)
+make test vet build lint
+go run ./cmd/api        # :8080, gagal keras tanpa DB; migrasi otomatis
+go run ./cmd/worker     # satu kali EOD; skip weekend/libur/watchlist kosong
 ```
-Backend strict-Postgres via `infra.WireStrict`: gagal keras tanpa `DATABASE_URL` yang reachable.
-Worker v2 cron: `30 16 * * 1-5 TZ=Asia/Jakarta ./worker`.
+
+Cron produksi (eksternal): `30 16 * * 1-5` dengan `TZ=Asia/Jakarta`. Jalankan api dan
+worker berurutan, jangan bersamaan, agar migrasi tidak balapan.
+
+Alur wajib search dulu: `GET /api/v1/search?q=BBCA` → `POST /api/v1/watchlist {"code":"BBCA"}`
+→ backfill jalan di background.
+
+## Riset (Python)
+
+```bash
+make py-sync            # uv sync di research/
+make py-test py-lint    # pytest + ruff
+make py-notebook        # JupyterLab
+```
+
+Detail: [`research/README.md`](research/README.md).
 
 ## API
 
+- `GET /health`
 - `GET /api/v1/search?q=bank`
-- `GET /api/v1/watchlist` / `POST /api/v1/watchlist {"code":"BBCA"}` / `DELETE /api/v1/watchlist/BBCA`
-- `GET /api/v1/signals?date=2026-09-18`
-- `GET /api/v1/ohlcv/BBCA?limit=60` (histori oldest-first, default 60, cap 500)
+- `GET /api/v1/watchlist` · `POST /api/v1/watchlist {"code":"BBCA"}` · `DELETE /api/v1/watchlist/BBCA`
+- `GET /api/v1/signals?date=2026-11-24&include_filtered=false`
+- `GET /api/v1/ohlcv/BBCA?limit=60` (oldest-first, cap 500)
 
-Docs: Swagger UI di `GET /swagger/index.html` (alias `/swagger`, `/docs`), spec mentah di `GET /openapi.yaml` (sumber: `internal/http/openapi.yaml`).
+Swagger UI: `GET /swagger/index.html`; spec: `GET /openapi.yaml`.
 
-## Next
+## Postgres cloud
 
-Rencana aktif: `docs/IMPLEMENTATION_PLAN.md` (§8: label akumulasi/distribusi rasio-CMF).
+1. Buat project Postgres (region terdekat, mis. Singapore).
+2. Pakai connection string **Session mode port 5432**. Transaction pooler 6543 bentrok
+   dengan prepared statement pgx (`42P05`).
+3. Isi `DATABASE_URL` di `.env`. Migrasi diterapkan otomatis saat startup.
 
-1. E2E cloud via contract test (`DATABASE_URL` user) + smoke Yahoo nyata (search → watchlist → backfill → `GET /api/v1/ohlcv/BBCA` + `GET /api/v1/signals`).
-2. Seed `stocks_master` IDX (idempoten) + uji fetch Yahoo 20–100 simbol (ukur 429/latency).
-3. Retry/backoff Yahoo (429/5xx, stdlib-only, di `internal/infra/yahoo` saja).
-4. `cmd/worker` v2 + IDX `GetStockSummary` fallback + `GetBrokerSummary` v2; kalender libur BEI penuh + `robfig/cron` bila worker jadi long-running.
+## Roadmap
 
-## Worker-minimal
-
-Single-run EOD: `go run ./cmd/worker` (butuh DB). Skip eksplisit bila weekend (kalender `nil`, weekend-only) atau watchlist kosong — exit 0, tanpa cron/`Send`. Histori via `GET /api/v1/ohlcv/:code` (oldest-first, default 60, cap 500).
-DB-down/list-gagal → exit non-zero (`wire:`/`worker: list watchlist:`) untuk cron-alert. E2E/migrasi: jalankan api lalu worker secara sekuensial, jangan konkuren agar auto-migrate tidak balapan.
+1. Kebenaran sinyal: guard bar basi, baseline volume tanpa bar hari ini, label dari CMF.
+2. Backfill histori ≥3 tahun untuk riset.
+3. Event study: forward return 1/5/20 hari, spike vs non-spike, dengan uji statistik.
