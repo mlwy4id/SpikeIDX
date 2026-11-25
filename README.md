@@ -1,79 +1,91 @@
-# SpikeIDX — deteksi dan riset volume spike saham Indonesia (EOD)
+# SpikeIDX — riset volume spike saham Indonesia (EOD)
 
-Pipeline End-of-Day untuk saham IDX: ambil OHLCV dari Yahoo (`.JK`), simpan ke Postgres,
-deteksi volume spike dan aliran dana (CMF/ADL), lalu kirim digest Telegram. Lapisan riset
-Python menguji apakah sinyal tersebut punya daya prediksi.
-
-| Bagian | Teknologi | Peran |
-|---|---|---|
-| Produksi | Go 1.25, pgx, Gin | API, worker EOD, satu-satunya penulis DB |
-| Riset | Python ≥3.12 (`uv`), pandas, scipy, JupyterLab | Event study/backtest, read-only ke DB |
-| DB | Postgres cloud (Supabase/Neon) | Dipakai bersama |
-
-## Layout
+Apakah volume spike di saham IDX punya daya prediksi, dan dengan rule seperti apa?
+SpikeIDX mengambil OHLCV harian dari Yahoo (`.JK`), menyimpannya di Postgres, menghitung
+sinyal volume dan aliran dana (CMF), mengirim digest Telegram harian, dan menyediakan
+**lab riset di terminal** untuk mengubah rule lalu menguji hasilnya dengan event study.
 
 ```
-cmd/api                REST (Gin): search, watchlist, signals, ohlcv, Swagger
-cmd/worker             single-run EOD: ingest → deteksi → digest Telegram
-internal/domain        entity + interface repo (stdlib only)
-internal/usecase       logika murni: spike, ADL, CMF, gap, kalender, ingest
-internal/http          handler tipis + openapi.yaml
-internal/infra         yahoo (retry 429/5xx), idx (kalender Nager; fallback stub),
-                       postgres (pgx + auto-migrate), telegram
-scripts/               seed_stocks, fetch_probe
-research/              paket Python spikeidx_research, tests, notebooks
+Yahoo ──► worker (Docker, tiap 3 jam) ──► Postgres ──► TUI lab riset (laptop)
+                    │                                    rule → event study → compare
+                    └──► Telegram (1 digest per tanggal bursa)
 ```
+
+Semua rumus ada di satu modul (`src/spikeidx/signals.py`) dan dipakai bersama oleh worker,
+event study, dan TUI.
 
 ## Rule sinyal
 
-- Spike: `volume / avg20 > 2.0` **dan** `z-score > 2.0`.
-- Terfilter (noise): spike dengan `|perubahan harga| < 2%`; disimpan, tidak masuk digest.
-- Label: `akumulasi` / `distribusi` / `netral` dari aliran dana 20 hari.
+| Bagian | Definisi |
+|---|---|
+| Baseline volume | rata-rata dan std (populasi) **20 bar sebelum** hari yang dinilai |
+| Spike | `volume / avg20 > 2.0` **dan** `z-score > 2.0` (baseline flat → z = 0) |
+| Terfilter (noise) | spike dengan `\|perubahan harga\| < 2%` |
+| Label | CMF 20 bar: `> 0.10` akumulasi, `< -0.10` distribusi, selain itu netral |
 
-## Run lokal (Go)
+Semua ambang bisa diubah di TUI.
 
-```bash
-cp .env.example .env    # isi DATABASE_URL (Session mode port 5432, ?sslmode=require)
-make test vet build lint
-go run ./cmd/api        # :8080, gagal keras tanpa DB; migrasi otomatis
-go run ./cmd/worker     # satu kali EOD; skip weekend/libur/watchlist kosong
-```
+## Event study
 
-Cron produksi (eksternal): `30 16 * * 1-5` dengan `TZ=Asia/Jakarta`. Jalankan api dan
-worker berurutan, jangan bersamaan, agar migrasi tidak balapan.
+- Entry di **open hari berikutnya** (sinyal baru diketahui setelah close); `fwd_h = close[t+h] / open[t+1] - 1`.
+- Event vs kontrol (hari non-spike), Welch t-test, hit rate; h default 1/5/20 hari.
+- Event dibuang bila ada lompatan harga > 35% di `[t-20, t+h]` (dugaan corporate action).
+- Batasan: return bisa overlap, universe = watchlist (survivorship), sampel kecil untuk rule ketat.
 
-Alur wajib search dulu: `GET /api/v1/search?q=BBCA` → `POST /api/v1/watchlist {"code":"BBCA"}`
-→ backfill jalan di background.
-
-## Riset (Python)
+## Mulai
 
 ```bash
-make py-sync            # uv sync di research/
-make py-test py-lint    # pytest + ruff
-make py-notebook        # JupyterLab
+uv sync                          # Python ≥3.12
+cp .env.example .env             # DATABASE_URL (Postgres, Session mode 5432), TELEGRAM_*
+uv run spikeidx migrate          # terapkan migrasi SQL yang belum tercatat
+uv run spikeidx backfill --years 3          # histori untuk riset (default: seluruh watchlist)
+uv run spikeidx tui              # lab riset
+uv run spikeidx worker --dry-run # satu run worker tanpa tulis DB / Telegram
 ```
 
-Detail: [`research/README.md`](research/README.md).
+### TUI
 
-## API
+| Tab | Isi |
+|---|---|
+| Lab | ubah rule + horizon → Run → tabel event study, daftar event, grafik harga/volume ±20 hari; simpan eksperimen |
+| Compare | pilih 1–4 eksperimen → tabel berdampingan per horizon; peringatan bila datanya berbeda |
+| Data | status data per kode, search Yahoo, tambah/hapus watchlist |
 
-- `GET /health`
-- `GET /api/v1/search?q=bank`
-- `GET /api/v1/watchlist` · `POST /api/v1/watchlist {"code":"BBCA"}` · `DELETE /api/v1/watchlist/BBCA`
-- `GET /api/v1/signals?date=2026-11-24&include_filtered=false`
-- `GET /api/v1/ohlcv/BBCA?limit=60` (oldest-first, cap 500)
+Eksperimen disimpan sebagai JSON di `~/.local/share/spikeidx/experiments/` (ubah lewat `SPIKEIDX_HOME`).
 
-Swagger UI: `GET /swagger/index.html`; spec: `GET /openapi.yaml`.
+### Worker di Docker (mis. PC Windows dengan Docker Desktop)
 
-## Postgres cloud
+```bash
+docker compose up -d --build worker-py
+```
 
-1. Buat project Postgres (region terdekat, mis. Singapore).
-2. Pakai connection string **Session mode port 5432**. Transaction pooler 6543 bentrok
-   dengan prepared statement pgx (`42P05`).
-3. Isi `DATABASE_URL` di `.env`. Migrasi diterapkan otomatis saat startup.
+- supercronic menjalankan `spikeidx worker` tiap 3 jam (WIB).
+- Bar hari ini baru diproses setelah **18:00 WIB**. Digest dikirim **sekali per tanggal bursa**
+  (dicatat di `digest_log`); kalau Telegram gagal, tanggal itu dicoba lagi di run berikutnya.
+- Default `--dry-run`. Untuk mengaktifkan: `docker compose run --rm worker-py spikeidx migrate`,
+  isi `WORKER_ARGS=` (kosong) di `.env`, lalu `docker compose up -d worker-py`.
+- Di Windows: aktifkan *Start Docker Desktop when you sign in* dan matikan sleep.
 
-## Roadmap
+## Pengembangan
 
-1. Kebenaran sinyal: guard bar basi, baseline volume tanpa bar hari ini, label dari CMF.
-2. Backfill histori ≥3 tahun untuk riset.
-3. Event study: forward return 1/5/20 hari, spike vs non-spike, dengan uji statistik.
+```bash
+make py-test py-lint   # pytest + ruff
+make py-notebook       # JupyterLab di notebooks/
+```
+
+| Path | Isi |
+|---|---|
+| `src/spikeidx/signals.py` | rumus fitur, rule, label (satu sumber) |
+| `src/spikeidx/research/` | forward return, event study |
+| `src/spikeidx/worker.py` | satu run EOD idempoten |
+| `src/spikeidx/tui/` | aplikasi Textual |
+| `src/spikeidx/store.py` | akses Postgres |
+| `src/spikeidx/sources/yahoo.py` | Yahoo chart/search (retry 429/5xx) |
+| `testdata/` | fixture golden yang bisa dicek manual |
+| `internal/infra/postgres/migrations/` | migrasi SQL (dipakai bersama Go dan Python) |
+
+## Status migrasi dari Go
+
+Kode Go (`cmd/`, `internal/`) masih ada sebagai sistem lama (profil compose `legacy`) selama
+worker Python berjalan paralel dalam mode dry-run. Setelah worker Python mengambil alih,
+kode Go dihapus dan folder migrasi dipindah ke root.

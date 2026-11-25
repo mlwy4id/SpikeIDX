@@ -3,7 +3,7 @@
 services:
   # Worker Python (pengganti `worker`): jalan terus, supercronic tiap 3 jam WIB.
   # Fase paralel: WORKER_ARGS=--dry-run (tidak menulis DB, tidak kirim Telegram).
-  # Ambil alih: `docker compose run --rm worker-py spikeidx migrate`, lalu WORKER_ARGS="".
+  # Ambil alih: `docker compose run --rm worker-py spikeidx migrate`, lalu isi `WORKER_ARGS=` (kosong) di .env.
   worker-py:
     build:
       context: .
@@ -11,7 +11,7 @@ services:
     env_file: [.env]
     environment:
       TZ: Asia/Jakarta
-      WORKER_ARGS: ${WORKER_ARGS:---dry-run}
+      WORKER_ARGS: ${WORKER_ARGS---dry-run}
     restart: unless-stopped
 
   # --- Go (legacy, dihapus setelah worker-py mengambil alih) ---
