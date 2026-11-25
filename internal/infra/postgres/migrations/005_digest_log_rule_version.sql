@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS digest_log (
+  date      DATE PRIMARY KEY,
+  sent_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  n_signals INT NOT NULL
+);
+
+ALTER TABLE IF EXISTS signals
+  ADD COLUMN IF NOT EXISTS rule_version TEXT NOT NULL DEFAULT 'go-v1';
