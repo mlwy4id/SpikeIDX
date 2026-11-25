@@ -1,0 +1,4 @@
+# Waktu mengikuti TZ container (Asia/Jakarta). Worker idempoten: digest hanya sekali
+# per tanggal bursa, dan bar hari ini baru diproses setelah 18:00 WIB.
+# WORKER_ARGS diisi dari docker-compose (default --dry-run selama fase paralel).
+0 */3 * * * spikeidx worker $WORKER_ARGS

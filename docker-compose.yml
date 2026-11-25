@@ -1,15 +1,31 @@
 # SpikeIDX on cloud Postgres (Supabase/Neon). No local db service.
-# Copy to .env and fill DATABASE_URL from your provider dashboard.
+# Copy .env.example to .env and fill DATABASE_URL (+ TELEGRAM_* for the digest).
 services:
+  # Worker Python (pengganti `worker`): jalan terus, supercronic tiap 3 jam WIB.
+  # Fase paralel: WORKER_ARGS=--dry-run (tidak menulis DB, tidak kirim Telegram).
+  # Ambil alih: `docker compose run --rm worker-py spikeidx migrate`, lalu WORKER_ARGS="".
+  worker-py:
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    env_file: [.env]
+    environment:
+      TZ: Asia/Jakarta
+      WORKER_ARGS: ${WORKER_ARGS:---dry-run}
+    restart: unless-stopped
+
+  # --- Go (legacy, dihapus setelah worker-py mengambil alih) ---
   api:
     build: .
     command: ["./api"]
     env_file: [.env]
     ports: ["8080:8080"]
+    profiles: [legacy]
 
   worker:
     build: .
     command: ["./worker"]
     env_file: [.env]
+    profiles: [legacy]
     # Single-run EOD; schedule externally, e.g. cron:
     # 30 16 * * 1-5 TZ=Asia/Jakarta /path/to/worker
