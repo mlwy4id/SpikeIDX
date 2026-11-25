@@ -9,15 +9,15 @@ bin/
 *.test
 coverage.out
 
-# Python (research/)
+# Python
 __pycache__/
 *.py[cod]
 .venv/
 .pytest_cache/
 .ruff_cache/
 .ipynb_checkpoints/
-research/data/
-research/outputs/
+/data/
+/outputs/
 
 # Editor
 .idea/

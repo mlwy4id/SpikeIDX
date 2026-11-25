@@ -20,13 +20,13 @@ run-api:
 	go run ./cmd/api
 
 py-sync:
-	cd research && uv sync
+	uv sync
 
 py-test:
-	cd research && uv run pytest
+	uv run pytest
 
 py-lint:
-	cd research && uv run ruff check . && uv run ruff format --check .
+	uv run ruff check . && uv run ruff format --check .
 
 py-notebook:
-	cd research && uv run jupyter lab notebooks/
+	uv run jupyter lab notebooks/
