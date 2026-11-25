@@ -86,9 +86,17 @@ def _backfill(engine: sa.Engine, codes: list[str], years: int) -> int:
     return 0 if ok or not codes else 1
 
 
+def configure_logging() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    logging.getLogger("spikeidx").setLevel(logging.INFO)
+    # httpx mencatat URL setiap request di INFO; URL Telegram berisi token bot.
+    for name in ("httpx", "httpcore"):
+        logging.getLogger(name).setLevel(logging.WARNING)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    configure_logging()
     try:
         settings = load_settings()
     except ConfigError as exc:

@@ -62,3 +62,15 @@ def test_cli_parser_commands():
     assert args.years == 5 and args.codes == ["bbca", "TLKM"]
     assert p.parse_args(["migrate"]).command == "migrate"
     assert p.parse_args(["tui"]).command == "tui"
+
+
+def test_configure_logging_silences_http_request_urls():
+    # URL Telegram berisi token bot; httpx mencatat URL request di level INFO.
+    import logging
+
+    from spikeidx.cli import configure_logging
+
+    configure_logging()
+    for name in ("httpx", "httpcore"):
+        assert not logging.getLogger(name).isEnabledFor(logging.INFO)
+    assert logging.getLogger("spikeidx").isEnabledFor(logging.INFO)
